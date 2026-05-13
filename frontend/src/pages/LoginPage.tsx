@@ -15,7 +15,7 @@ export function LoginPage() {
     setError('');
     setIsLoading(true);
     (async () => {
-      const endpoints = ['/api/auth/login', 'http://localhost:5000/api/auth/login'];
+const endpoints = ['http://10.238.5.223:5000/api/auth/login'];
       let lastError: any = null;
       for (const url of endpoints) {
         try {
