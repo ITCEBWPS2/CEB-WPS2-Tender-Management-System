@@ -104,7 +104,7 @@ export function DashboardPage() {
         <KpiCard title="Retender" value={retender} icon={Clock} color="amber" trend="Action required" />
         <KpiCard title="Re evaluation" value={reEvaluation} icon={Clock} color="amber" trend="In progress" />
         <KpiCard 
-          title="Rejected" 
+          title="Rejected"
           value={rejectedTotal} 
           icon={AlertCircle} 
           color="red" 

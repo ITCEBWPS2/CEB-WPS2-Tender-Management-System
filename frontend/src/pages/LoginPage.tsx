@@ -6,8 +6,8 @@ import { Input } from '../components/ui/Input';
 import backgr from '../assets/backgr.png';
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState('isurusenarath6699@gmail.com');
+  const [password, setPassword] = useState('123');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const handleLogin = (e: React.FormEvent) => {
@@ -15,7 +15,7 @@ export function LoginPage() {
     setError('');
     setIsLoading(true);
     (async () => {
-const endpoints = ['http://10.238.5.223:5000/api/auth/login'];
+const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
       let lastError: any = null;
       for (const url of endpoints) {
         try {
@@ -87,7 +87,7 @@ const endpoints = ['http://10.238.5.223:5000/api/auth/login'];
 
             <div className="text-center text-xs text-slate-400">
               <p>Super Admin credentials:</p>
-              <p>Email: isurusenarath6699@gmail.com | Pass: 123.</p>
+              <p>Email: isurusenarath6699@gmail.com | Pass: 123</p>
             </div>
           </form>
         </div>
