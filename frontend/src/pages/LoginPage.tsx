@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input';
 import backgr from '../assets/backgr.png';
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('isurusenarath6699@gmail.com');
+  const [email, setEmail] = useState('isurusenarath6699@gmail.com');//dont hardcode
   const [password, setPassword] = useState('123');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -15,6 +15,7 @@ export function LoginPage() {
     setError('');
     setIsLoading(true);
     (async () => {
+
 const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
       let lastError: any = null;
       for (const url of endpoints) {
