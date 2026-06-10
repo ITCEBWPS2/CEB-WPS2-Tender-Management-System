@@ -7,12 +7,14 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { SystemUser } from '../utils/types';
+
 export function UserManagementPage() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [roleFilter, setRoleFilter] = useState('All');
+
   const handleDelete = () => {
     (async () => {
       if (!deleteId) return;
@@ -55,17 +57,18 @@ export function UserManagementPage() {
         setUsers(mapped);
       } catch (err) {
         console.error('Failed to load users', err);
-        // fall back to empty array
         setUsers([]);
       }
     };
     load();
   }, []);
+
   const filteredUsers = users.filter(user => {
     const statusMatch = statusFilter === 'All' || user.status === statusFilter;
     const roleMatch = roleFilter === 'All' || user.role === roleFilter;
     return statusMatch && roleMatch;
   });
+
   const columns = [{
     header: 'Name',
     accessorKey: 'name' as keyof SystemUser
@@ -86,7 +89,7 @@ export function UserManagementPage() {
         Active: 'bg-green-100 text-green-800',
         Inactive: 'bg-gray-100 text-gray-800'
       };
-      return <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[item.status]}`}>
+      return <span className={`px-2 py-1 rounded-full text-xs font-medium ${colors[item.status as keyof typeof colors] || 'bg-gray-100 text-gray-800'}`}>
             {item.status}
           </span>;
     }
@@ -105,6 +108,7 @@ export function UserManagementPage() {
           </button>
         </div>
   }];
+
   return <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -119,25 +123,24 @@ export function UserManagementPage() {
       </div>
 
       <DataTable data={filteredUsers} columns={columns} searchKey="name" searchPlaceholder="Search by name..." filters={<div className="flex gap-2">
-            <Select className="w-32" options={[{
+            {/* */}
+            <Select className="w-44" options={[{
         value: 'All',
         label: 'All Roles'
-      }, {
-        value: 'Super Admin',
-        label: 'Super Admin'
       }, {
         value: 'Admin',
         label: 'Admin'
       }, {
-        value: 'Clerk 1',
-        label: 'Clerk 1'
+        value: 'Procurement',
+        label: 'Procurement'
       }, {
-        value: 'Clerk 2',
-        label: 'Clerk 2'
+        value: 'c.com user',
+        label: 'c.com user'
       }, {
-        value: 'Clerk 3',
-        label: 'Clerk 3'
+        value: 'commercial user',
+        label: 'commercial user'
       }]} value={roleFilter} onChange={e => setRoleFilter(e.target.value)} />
+            
             <Select className="w-32" options={[{
         value: 'All',
         label: 'All Status'

@@ -17,8 +17,14 @@ async function seed() {
     await Department.deleteMany();
     await Staff.deleteMany();
 
-    const admin = await User.create({ name: 'Super Admin', email: 'isurusenarath6699@gmail.com', password: require('bcryptjs').hashSync('123.', 10), role: 'Super Admin' });
-    console.log('Created super admin:', admin.email);
+    
+    const admin = await User.create({ 
+      name: 'Dinuwara Admin', 
+      email: 'dinuwaramuthumaldeniya@gmail.com', 
+      password: require('bcryptjs').hashSync('dinuwara123', 10), 
+      role: 'Admin' 
+    });
+    console.log('Created admin:', admin.email);
 
     await Category.create([{ name: 'Goods' }, { name: 'Services' }, { name: 'Works' }, { name: 'Consultancy' }]);
     console.log('Categories created');

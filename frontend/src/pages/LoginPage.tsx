@@ -6,10 +6,10 @@ import { Input } from '../components/ui/Input';
 import backgr from '../assets/backgr.png';
 export function LoginPage() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('isurusenarath6699@gmail.com');//dont hardcode
-  const [password, setPassword] = useState('123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false)
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -46,7 +46,7 @@ const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
           lastError = { message: 'Login failed' };
         } catch (err) {
           lastError = err;
-          // try next endpoint
+          // try the next endpoint
         }
       }
       console.error('Login error', lastError);
@@ -87,8 +87,8 @@ const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
             </Button>
 
             <div className="text-center text-xs text-slate-400">
-              <p>Super Admin credentials:</p>
-              <p>Email: isurusenarath6699@gmail.com | Pass: 123</p>
+              <p> Admin credentials:</p>
+              <p>Email: dinuwaramuthumaldeniya@gmail.com | Pass: dinuwara123</p>
             </div>
           </form>
         </div>
