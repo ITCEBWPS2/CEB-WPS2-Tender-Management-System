@@ -9,13 +9,14 @@ export function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false)
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
     (async () => {
-      const endpoints = ['/api/auth/login', 'http://localhost:5000/api/auth/login'];
+
+const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
       let lastError: any = null;
       for (const url of endpoints) {
         try {
@@ -45,7 +46,7 @@ export function LoginPage() {
           lastError = { message: 'Login failed' };
         } catch (err) {
           lastError = err;
-          // try next endpoint
+          // try the next endpoint
         }
       }
       console.error('Login error', lastError);
@@ -86,8 +87,8 @@ export function LoginPage() {
             </Button>
 
             <div className="text-center text-xs text-slate-400">
-              <p>Super Admin credentials:</p>
-              <p>Email: isurusenarath6699@gmail.com | Pass: 123.</p>
+              <p> Admin credentials:</p>
+              <p>Email: dinuwaramuthumaldeniya@gmail.com | Pass: dinuwara123</p>
             </div>
           </form>
         </div>

@@ -17,19 +17,43 @@ exports.register = async (req, res, next) => {
 };
 
 exports.login = async (req, res, next) => {
-  try {
+  try { 
     const { email, password } = req.body;
+    
+    // 
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ message: 'Invalid credentials' });
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(400).json({ message: 'Invalid credentials' });
+    if (!user) {
+      console.log(`❌ LOGIN FAILED: Email not found -> ${email}`);
+      return res.status(400).json({ message: 'Invalid email or password' });
+    }
+
+    // 
+    const match = await bcrypt.compare(password, user.password); 
+    
+    console.log("--- LOGIN ATTEMPT ---");
+    console.log("User Email:", email);
+    console.log("Password Match Result:", match); //checking the matching password
+
+    // 
+    if (match === false || !match) {
+      console.log(`❌ LOGIN FAILED: Password Mismatch for -> ${email}`);
+      return res.status(401).json({ message: 'Invalid email or password' });
+    }
+
+    // 4. 
+    console.log(`✅ LOGIN SUCCESS: Authenticated -> ${email}`);
     const payload = { id: user._id, email: user.email, role: user.role };
     const token = jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '8h' });
-    user.lastLogin = new Date();
-    await user.save();
-    await AuditLog.create({ user: email, type: 'login', message: `User logged in: ${email}` });
-    res.json({ token, user: payload });
-  } catch (err) { next(err); }
+
+    await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } }).catch(() => {});
+    await AuditLog.create({ user: email, type: 'login', message: `User logged in: ${email}` }).catch(() => {});
+    
+    return res.status(200).json({ token, user: payload });
+
+  } catch (err) { 
+    console.error("Server Error:", err);
+    next(err); 
+  }
 };
 
 exports.verify = async (req, res, next) => {

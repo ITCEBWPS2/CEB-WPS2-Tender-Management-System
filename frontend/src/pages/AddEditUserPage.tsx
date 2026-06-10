@@ -5,19 +5,17 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { SystemUser } from '../utils/types';
+
 export function AddEditUserPage() {
   const navigate = useNavigate();
-  const {
-    id
-  } = useParams();
+  const { id } = useParams();
   const isEdit = !!id;
-  const [formData, setFormData] = useState<Partial<SystemUser & {
-    password?: string;
-  }>>({
+  const [formData, setFormData] = useState<Partial<SystemUser & { password?: string }>>({
     status: 'Active',
-    role: 'Clerk 1'
+    role: 'Admin' //  Default Role  'Admin' 
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+
   useEffect(() => {
     const load = async () => {
       if (!isEdit) return;
@@ -40,25 +38,22 @@ export function AddEditUserPage() {
     };
     load();
   }, [id, isEdit]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const {
-      name,
-      value
-    } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
     if (errors[name]) {
       setErrors(prev => {
-        const newErrors = {
-          ...prev
-        };
+        const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
     }
   };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = 'Name is required';
@@ -68,6 +63,7 @@ export function AddEditUserPage() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validate()) {
@@ -77,7 +73,6 @@ export function AddEditUserPage() {
           const url = isEdit ? `/api/users/${id}` : '/api/users';
           const method = isEdit ? 'PUT' : 'POST';
           const body = { ...formData } as any;
-          // do not send undefined fields
           Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
           const res = await fetch(url, {
             method,
@@ -100,6 +95,7 @@ export function AddEditUserPage() {
       })();
     }
   };
+
   return <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <button onClick={() => navigate('/users')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -121,21 +117,19 @@ export function AddEditUserPage() {
 
           <Input label="Email Address" name="email" type="email" value={formData.email || ''} onChange={handleChange} error={errors.email} placeholder="e.g. john.doe@tec.gov" />
 
-          <Select label="Role" name="role" value={formData.role || 'Clerk 1'} onChange={handleChange} error={errors.role} options={[{
-          value: 'Super Admin',
-          label: 'Super Admin'
-        }, {
+          {/* Role options */}
+          <Select label="Role" name="role" value={formData.role || 'Admin'} onChange={handleChange} error={errors.role} options={[{
           value: 'Admin',
           label: 'Admin'
         }, {
-          value: 'Clerk 1',
-          label: 'Clerk 1'
+          value: 'Procurement',
+          label: 'Procurement'
         }, {
-          value: 'Clerk 2',
-          label: 'Clerk 2'
+          value: 'c.com user',
+          label: 'c.com user'
         }, {
-          value: 'Clerk 3',
-          label: 'Clerk 3'
+          value: 'commercial user',
+          label: 'commercial user'
         }]} />
 
           {!isEdit && <Input label="Password" name="password" type="password" value={formData.password || ''} onChange={handleChange} error={errors.password} placeholder="Enter password" />}
