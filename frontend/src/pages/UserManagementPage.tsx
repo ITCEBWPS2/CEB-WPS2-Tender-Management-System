@@ -76,6 +76,10 @@ export function UserManagementPage() {
     header: 'Email',
     accessorKey: 'email' as keyof SystemUser
   }, {
+    
+    header: 'EPF Number',
+    accessorKey: 'epfNumber' as unknown as keyof SystemUser 
+  }, {
     header: 'Role',
     accessorKey: 'role' as keyof SystemUser,
     cell: (item: SystemUser) => <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
@@ -123,7 +127,6 @@ export function UserManagementPage() {
       </div>
 
       <DataTable data={filteredUsers} columns={columns} searchKey="name" searchPlaceholder="Search by name..." filters={<div className="flex gap-2">
-            {/* */}
             <Select className="w-44" options={[{
         value: 'All',
         label: 'All Roles'

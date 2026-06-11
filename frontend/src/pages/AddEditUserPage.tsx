@@ -10,9 +10,11 @@ export function AddEditUserPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
-  const [formData, setFormData] = useState<Partial<SystemUser & { password?: string }>>({
+  
+  // 👈 1. State එකේ TypeScript කන්ෆිග් එකට epfNumber එකත් එකතු කරා whutto
+  const [formData, setFormData] = useState<Partial<SystemUser & { password?: string; epfNumber?: string }>>({
     status: 'Active',
-    role: 'Admin' //  Default Role  'Admin' 
+    role: 'Admin' 
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -54,10 +56,12 @@ export function AddEditUserPage() {
     }
   };
 
+  // 👈 2. මෙන්න මෙතනට EPF එක හිස්ද බලන වැලිඩේෂන් එක දැම්මා pako
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = 'Name is required';
     if (!formData.email) newErrors.email = 'Email is required';
+    if (!formData.epfNumber) newErrors.epfNumber = 'EPF Number is required'; // 👈 මස්ට් බඩු!
     if (!formData.role) newErrors.role = 'Role is required';
     if (!isEdit && !formData.password) newErrors.password = 'Password is required';
     setErrors(newErrors);
@@ -116,6 +120,17 @@ export function AddEditUserPage() {
           <Input label="Full Name" name="name" value={formData.name || ''} onChange={handleChange} error={errors.name} placeholder="e.g. John Doe" />
 
           <Input label="Email Address" name="email" type="email" value={formData.email || ''} onChange={handleChange} error={errors.email} placeholder="e.g. john.doe@tec.gov" />
+
+          {/* 👈 3. මෙන්න ඊමේල් එකට කෙළින්ම පල්ලෙහායින් EPF Input එක හැදුවා මචං */}
+          <Input 
+            label="EPF Number" 
+            name="epfNumber" 
+            type="text" 
+            value={formData.epfNumber || ''} 
+            onChange={handleChange} 
+            error={errors.epfNumber} 
+            placeholder="e.g. 12345" 
+          />
 
           {/* Role options */}
           <Select label="Role" name="role" value={formData.role || 'Admin'} onChange={handleChange} error={errors.role} options={[{
