@@ -8,7 +8,8 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   role: { 
     type: String, 
-    enum: ['Super Admin', 'Admin', 'Procurement', 'commercial user', 'c.com user'], 
+    // Database enums updated to accept standardized Clerk and CECOM roles natively
+    enum: ['Super Admin', 'Admin', 'Procurement', 'Clerk', 'CECOM'], 
     default: 'Admin' 
   },
   status: { type: String, default: 'Active' },

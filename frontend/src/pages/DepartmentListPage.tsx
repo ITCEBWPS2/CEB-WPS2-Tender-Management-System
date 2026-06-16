@@ -13,9 +13,31 @@ export function DepartmentListPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
 
+  // Fetch and clean user role from session storage
+  const getCleanRole = (): string => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed && parsed.role) return parsed.role.toLowerCase().trim();
+      } catch (e) {}
+    }
+    return 'guest'; 
+  };
+
+  const userRole = getCleanRole();
+
   const handleDelete = () => {
     (async () => {
       if (!deleteId) return;
+
+      // Restrict delete access for Clerk role
+      if (userRole === 'clerk') {
+        alert('Access Denied: Clerks are not authorized to delete units! Only Admins can perform this action. 🛑');
+        setDeleteId(null);
+        return;
+      }
+
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await fetch(`/api/departments/${deleteId}`, {
@@ -26,11 +48,11 @@ export function DepartmentListPage() {
           setDepartments(prev => prev.filter(d => d.id !== deleteId));
         } else {
           const err = await res.json().catch(() => ({ message: 'Failed to delete' }));
-          alert(err.message || 'Failed to delete department');
+          alert(err.message || 'Error: Failed to delete unit.');
         }
       } catch (err) {
         console.error(err);
-        alert('Failed to delete department');
+        alert('Error: Failed to delete unit.');
       } finally {
         setDeleteId(null);
       }
@@ -55,11 +77,14 @@ export function DepartmentListPage() {
     };
     load();
   }, []);
+
   const filteredDepartments = departments.filter(department => {
     return statusFilter === 'All' || department.status === statusFilter;
   });
+
+  // Table columns configuration with updated English headers
   const columns = [{
-    header: 'Department Name',
+    header: 'Unit Name', 
     accessorKey: 'name' as keyof Department
   }, {
     header: 'Code',
@@ -71,7 +96,7 @@ export function DepartmentListPage() {
           {item.description}
         </span>
   }, {
-    header: 'Head of Department',
+    header: 'Head of Unit', 
     accessorKey: 'headOfDepartment' as keyof Department
   }, {
     header: 'Status',
@@ -89,51 +114,73 @@ export function DepartmentListPage() {
     header: 'Actions',
     accessorKey: 'id' as keyof Department,
     cell: (item: Department) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(`/departments/edit/${item.id}`)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+          
+          {/* Restrict Edit/Modification access to Admins only */}
+          <button 
+            onClick={() => {
+              if (userRole === 'clerk') {
+                alert('Access Denied: Clerks are not authorized to edit units! Only Admins can perform this action. 🛑');
+                return;
+              }
+              navigate(`/departments/edit/${item.id}`);
+            }} 
+            className="p-1 text-slate-400 hover:text-blue-600 transition-colors" 
+            title="Edit"
+          >
             <Edit2 className="w-4 h-4" />
           </button>
+
           <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
             <Trash2 className="w-4 h-4" />
           </button>
         </div>
   }];
+
   return <div className="space-y-6">
+      {/* Top Header Section */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">
-            Department Management
+            Unit Management
           </h2>
           <p className="text-slate-500">
-            Manage organizational departments and units
+            Manage organizational units
           </p>
         </div>
         <Button onClick={() => navigate('/departments/add')} leftIcon={<Plus className="w-4 h-4" />}>
-          Add New Department
+          Add New Unit
         </Button>
       </div>
 
-      <DataTable data={filteredDepartments} columns={columns} searchKey="name" searchPlaceholder="Search by department name..." filters={<Select className="w-32" options={[{
-      value: 'All',
-      label: 'All Status'
-    }, {
-      value: 'Active',
-      label: 'Active'
-    }, {
-      value: 'Inactive',
-      label: 'Inactive'
-    }]} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} />} />
+      {/* Main Data Table View */}
+      <DataTable 
+        data={filteredDepartments} 
+        columns={columns} 
+        searchKey="name" 
+        searchPlaceholder="Search by unit name..." 
+        filters={<Select className="w-32" options={[{
+          value: 'All',
+          label: 'All Status'
+        }, {
+          value: 'Active',
+          label: 'Active'
+        }, {
+          value: 'Inactive',
+          label: 'Inactive'
+        }]} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} />} 
+      />
 
-      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Delete Department" footer={<>
+      {/* Confirmation Modal for Deletion */}
+      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Delete Unit" footer={<>
             <Button variant="ghost" onClick={() => setDeleteId(null)}>
               Cancel
             </Button>
             <Button variant="danger" onClick={handleDelete}>
-              Delete Department
+              Delete Unit
             </Button>
           </>}>
         <p className="text-slate-600">
-          Are you sure you want to delete this department? This action cannot be
-          undone.
+          Are you sure you want to delete this unit? This action cannot be undone.
         </p>
       </Modal>
     </div>;

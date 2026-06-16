@@ -6,7 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { DatePicker } from '../components/ui/DatePicker';
-import { Record as TmsRecord, Department, CategoryItem, Staff, Bidder, BidOpeningCommittee } from '../utils/types';
+import { Record as TmsRecord, Department, CategoryItem, Bidder, BidOpeningCommittee } from '../utils/types';
 
 export function AddEditRecordPage() {
   const navigate = useNavigate();
@@ -18,10 +18,9 @@ export function AddEditRecordPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   
-  // Data for dropdowns
+  // State variables for dropdown selections
   const [departments, setDepartments] = useState<Department[]>([]);
   const [categories, setCategories] = useState<CategoryItem[]>([]);
-  const [staff, setStaff] = useState<Staff[]>([]);
   const [bidders, setBidders] = useState<Bidder[]>([]);
   const [committees, setCommitCommittees] = useState<BidOpeningCommittee[]>([]);
 
@@ -31,21 +30,20 @@ export function AddEditRecordPage() {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const h = { headers: token ? { Authorization: `Bearer ${token}` } : undefined };
         
-        const [depRes, catRes, staffRes, bidderRes, committeeRes] = await Promise.all([
+        // 🎯 Removed unused staff API call to maximize compile efficiency
+        const [depRes, catRes, bidderRes, committeeRes] = await Promise.all([
           fetch('/api/departments', h),
           fetch('/api/categories', h),
-          fetch('/api/staff', h),
           fetch('/api/bidders', h),
           fetch('/api/committees', h)
         ]);
 
         if (depRes.ok) setDepartments(await depRes.json());
         if (catRes.ok) setCategories(await catRes.json());
-        if (staffRes.ok) setStaff(await staffRes.json());
         if (bidderRes.ok) setBidders(await bidderRes.json());
         if (committeeRes.ok) setCommitCommittees(await committeeRes.json());
       } catch (err) {
-        console.error('Failed to load dropdown data', err);
+        console.error('Failed to load dropdown records:', err);
       }
     };
 
@@ -73,7 +71,7 @@ export function AddEditRecordPage() {
           });
         }
       } catch (err) {
-        console.error('Failed to load record', err);
+        console.error('Failed to load existing record details:', err);
       }
     };
 
@@ -103,36 +101,27 @@ export function AddEditRecordPage() {
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const {
-      name,
-      value
-    } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
     if (errors[name]) {
       setErrors(prev => {
-        const newErrors = {
-          ...prev
-        };
+        const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
     }
   };
 
+  // Enforce mandatory field verification prior to submission
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.tenderNumber) newErrors.tenderNumber = 'Tender Number is required';
-    if (!formData.relevantTo) newErrors.relevantTo = 'Department is required';
+    if (!formData.relevantTo) newErrors.relevantTo = 'Unit selection is required';
     if (!formData.category) newErrors.category = 'Category is required';
     if (!formData.description) newErrors.description = 'Description is required';
-    if (!formData.bidStartDate) newErrors.bidStartDate = 'Bid Start Date is required';
-    if (!formData.bidOpenDate) newErrors.bidOpenDate = 'Bid Open Date is required';
-    if (!formData.bidClosingDate) newErrors.bidClosingDate = 'Bid Closing Date is required';
-    if (!formData.fileSentToTecDate) newErrors.fileSentToTecDate = 'File Sent to TEC Date is required';
-    if (!formData.tecCommitteeNumber) newErrors.tecCommitteeNumber = 'TEC Committee Number is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -155,32 +144,30 @@ export function AddEditRecordPage() {
           });
           if (!res.ok) {
             const err = await res.json().catch(() => ({ message: 'Failed to save' }));
-            alert(err.message || 'Failed to save record');
+            alert(err.message || 'Error: Failed to save tender record details.');
             return;
           }
           navigate('/records');
         } catch (err) {
           console.error(err);
-          alert('Failed to save record');
+          alert('Error: Failed to save tender record details.');
         }
       })();
     }
   };
 
-  // Prepare dropdown options
-  const departmentOptions = departments?.filter(d => d.status === 'Active').map(d => ({
-    value: d.name,
-    label: d.name
-  })) || [];
+  // Map database units and safely append the "Other" option to prevent validation faults
+  const departmentOptions = [
+    ...(departments?.filter(d => d.status === 'Active').map(d => ({
+      value: d.name,
+      label: d.name
+    })) || []),
+    { value: 'Other', label: 'Other' }
+  ];
   
   const categoryOptions = categories?.filter(c => c.status === 'Active').map(c => ({
     value: c.name,
     label: c.name
-  })) || [];
-  
-  const staffOptions = staff?.map(s => ({
-    value: s.name,
-    label: s.name
   })) || [];
   
   const bidderOptions = bidders?.map(b => ({
@@ -193,54 +180,26 @@ export function AddEditRecordPage() {
     label: c.committeeNumber
   })) || [];
 
-  const remarkOptions = [{
-    value: 'Awarded',
-    label: 'Awarded'
-  }, {
-    value: 'Cancel',
-    label: 'Cancel'
-  }, {
-    value: 'In PPC',
-    label: 'In PPC'
-  }, {
-    value: 'Re-evaluation',
-    label: 'Re-evaluation'
-  }, {
-    value: 'Retender',
-    label: 'Retender'
-  }, {
-    value: 'Under Evaluation',
-    label: 'Under Evaluation'
-  }];
+  const remarkOptions = [
+    { value: 'Awarded', label: 'Awarded' },
+    { value: 'Cancel', label: 'Cancel' },
+    { value: 'In PPC', label: 'In PPC' },
+    { value: 'Re-evaluation', label: 'Re-evaluation' },
+    { value: 'Retender', label: 'Retender' },
+    { value: 'Under Evaluation', label: 'Under Evaluation' }
+  ];
 
-  const statusOptions = [{
-    value: 'Awarded',
-    label: 'Awarded'
-  }, {
-    value: 'Cancel',
-    label: 'Cancel'
-  }, {
-    value: 'Close',
-    label: 'Close'
-  }, {
-    value: 'Doc Review',
-    label: 'Doc Review'
-  }, {
-    value: 'Negotiate or Clarification',
-    label: 'Negotiate or Clarification'
-  }, {
-    value: 'Re-evaluation',
-    label: 'Re-evaluation'
-  }, {
-    value: 'Reject',
-    label: 'Reject'
-  }, {
-    value: 'Retender',
-    label: 'Retender'
-  }, {
-    value: 'Under Evaluation',
-    label: 'Under Evaluation'
-  }];
+  const statusOptions = [
+    { value: 'Awarded', label: 'Awarded' },
+    { value: 'Cancel', label: 'Cancel' },
+    { value: 'Close', label: 'Close' },
+    { value: 'Doc Review', label: 'Doc Review' },
+    { value: 'Negotiate or Clarification', label: 'Negotiate or Clarification' },
+    { value: 'Re-evaluation', label: 'Re-evaluation' },
+    { value: 'Reject', label: 'Reject' },
+    { value: 'Retender', label: 'Retender' },
+    { value: 'Under Evaluation', label: 'Under Evaluation' }
+  ];
 
   return <div className="max-w-5xl mx-auto h-[calc(100vh-140px)] flex flex-col">
       <div className="flex-shrink-0 flex items-center gap-4 mb-6">
@@ -267,11 +226,9 @@ export function AddEditRecordPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Input label="Tender Number" name="tenderNumber" value={formData.tenderNumber || ''} onChange={handleChange} error={errors.tenderNumber} placeholder="e.g. TEC-2023-001" />
 
-              <Select label="Relevant To (Department)" name="relevantTo" value={formData.relevantTo || ''} onChange={handleChange} error={errors.relevantTo} options={departmentOptions} />
+              <Select label="Relevant To (Unit)" name="relevantTo" value={formData.relevantTo || ''} onChange={handleChange} error={errors.relevantTo} options={departmentOptions} />
 
               <Select label="Category" name="category" value={formData.category || ''} onChange={handleChange} error={errors.category} options={categoryOptions} />
-
-              <Select label="Other" name="other" value={formData.other || ''} onChange={handleChange} options={staffOptions} />
 
               <div className="md:col-span-2">
                 <Textarea label="Description" name="description" value={formData.description || ''} onChange={handleChange} error={errors.description} placeholder="Detailed description of the tender..." rows={4} />

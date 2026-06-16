@@ -17,8 +17,31 @@ export function AddEditDepartmentPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Fetch and clean user role from session storage
+  const getCleanRole = (): string => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed && parsed.role) return parsed.role.toLowerCase().trim();
+      } catch (e) {}
+    }
+    return 'guest'; 
+  };
+
+  const userRole = getCleanRole();
+
+  // Enforce Admin-only access guard for this page
   useEffect(() => {
-    if (isEdit) {
+    if (userRole !== 'admin') {
+      alert('Access Denied: You are not authorized to access this page. Only System Administrators can add or edit units. 🛑');
+      navigate('/records');
+    }
+  }, [userRole, navigate]);
+
+  // Load existing unit data if in edit mode
+  useEffect(() => {
+    if (isEdit && userRole === 'admin') {
       (async () => {
         try {
           const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
@@ -30,26 +53,21 @@ export function AddEditDepartmentPage() {
             setFormData({ ...data, id: data._id || data.id });
           }
         } catch (err) {
-          console.error('Failed to load department', err);
+          console.error('Failed to load unit details:', err);
         }
       })();
     }
-  }, [id, isEdit]);
+  }, [id, isEdit, userRole]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const {
-      name,
-      value
-    } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
     if (errors[name]) {
       setErrors(prev => {
-        const newErrors = {
-          ...prev
-        };
+        const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
@@ -73,14 +91,14 @@ export function AddEditDepartmentPage() {
           body: JSON.stringify(formData)
         });
         if (!res.ok) {
-          const err = await res.json().catch(() => ({ message: 'Failed to save department' }));
-          setErrors({ submit: err.message || 'Failed to save department' });
+          const err = await res.json().catch(() => ({ message: 'Failed to save unit details' }));
+          setErrors({ submit: err.message || 'Error: Failed to save unit details.' });
           return;
         }
         navigate('/departments');
       } catch (err) {
         console.error(err);
-        alert('Failed to save department');
+        alert('Error: Failed to save unit details.');
       }
     })();
   };
@@ -93,10 +111,10 @@ export function AddEditDepartmentPage() {
         </button>
         <div>
           <h2 className="text-2xl font-bold text-slate-900">
-            {isEdit ? 'Edit Department' : 'Add New Department'}
+            {isEdit ? 'Edit Unit' : 'Add New Unit'}
           </h2>
           <p className="text-slate-500">
-            {isEdit ? `Editing ${formData.name || 'department details'}` : 'Create a new organizational department'}
+            {isEdit ? `Editing ${formData.name || 'unit details'}` : 'Create a new organizational unit'}
           </p>
         </div>
       </div>
@@ -112,16 +130,16 @@ export function AddEditDepartmentPage() {
             
             <div className="flex items-center gap-2 text-[#bd5d2a] mb-2">
               <div className="w-1.5 h-6 bg-[#bd5d2a] rounded-full" />
-              <h3 className="font-bold text-lg">Department Details</h3>
+              <h3 className="font-bold text-lg">Unit Details</h3>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input label="Department Name" name="name" value={formData.name || ''} onChange={handleChange} placeholder="e.g. IT Department" />
-              <Input label="Department Code" name="code" value={formData.code || ''} onChange={handleChange} placeholder="e.g. IT" />
+              <Input label="Unit Name" name="name" value={formData.name || ''} onChange={handleChange} placeholder="e.g. CECOM" />
+              <Input label="Unit Code" name="code" value={formData.code || ''} onChange={handleChange} placeholder="e.g. CECOM" />
             </div>
 
             <Textarea label="Description" name="description" value={formData.description || ''} onChange={handleChange} placeholder="Detailed description..." rows={3} />
-            <Input label="Head of Department" name="headOfDepartment" value={formData.headOfDepartment || ''} onChange={handleChange} placeholder="e.g. Mr. John Doe" />
+            <Input label="Head of Unit" name="headOfDepartment" value={formData.headOfDepartment || ''} onChange={handleChange} placeholder="e.g. Mr. John Doe" />
 
             <Select label="Status" name="status" value={formData.status || 'Active'} onChange={handleChange} options={[{
                 value: 'Active',
@@ -138,7 +156,7 @@ export function AddEditDepartmentPage() {
               Cancel
             </Button>
             <Button type="submit" leftIcon={<Save className="w-4 h-4" />}>
-              Save Department
+              Save Unit
             </Button>
           </div>
         </form>

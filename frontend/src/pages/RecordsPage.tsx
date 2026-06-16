@@ -9,14 +9,37 @@ import { Record as TmsRecord } from '../utils/types';
 export function RecordsPage() {
   const navigate = useNavigate();
   const [records, setRecords] = useState<TmsRecord[]>([]);
+  const [categories, setCategories] = useState<any[]>([]); 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
+  // Fetch and clean user role from session storage
+  const getCleanRole = (): string => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed && parsed.role) return parsed.role.toLowerCase().trim();
+      } catch (e) {}
+    }
+    return 'guest'; 
+  };
+
+  const userRole = getCleanRole();
+
   const handleDelete = () => {
     (async () => {
       if (!deleteId) return;
+
+      // Restrict delete access for Clerk role
+      if (userRole === 'clerk') {
+        alert('Access Denied: Clerks are not authorized to delete tender records! Only Admins can perform this action. 🛑');
+        setDeleteId(null);
+        return;
+      }
+
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await fetch(`/api/records/${deleteId}`, {
@@ -27,11 +50,11 @@ export function RecordsPage() {
           setRecords(prev => prev.filter(r => r.id !== deleteId));
         } else {
           const err = await res.json().catch(() => ({ message: 'Failed to delete' }));
-          alert(err.message || 'Failed to delete record');
+          alert(err.message || 'Error: Failed to delete record.');
         }
       } catch (err) {
         console.error(err);
-        alert('Failed to delete record');
+        alert('Error: Failed to delete record.');
       } finally {
         setDeleteId(null);
       }
@@ -39,12 +62,13 @@ export function RecordsPage() {
   };
 
   useEffect(() => {
-    const load = async () => {
+    const loadData = async () => {
+      const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+
+      // 1. Load Records
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch('/api/records', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await fetch('/api/records', { headers });
         if (res.ok) {
           const data = await res.json();
           const mapped = Array.isArray(data) ? data.map((r: any) => ({ ...r, id: r._id || r.id })) : [];
@@ -53,15 +77,34 @@ export function RecordsPage() {
       } catch (err) {
         console.error('Failed to load records', err);
       }
+
+      // 2. Load Categories
+      try {
+        const res = await fetch('/api/categories', { headers });
+        if (res.ok) {
+          const catData = await res.json();
+          setCategories(Array.isArray(catData) ? catData : []);
+        }
+      } catch (err) {
+        console.error('Failed to load categories', err);
+      }
     };
-    load();
+
+    loadData();
   }, []);
+
   const filteredRecords = records.filter(record => {
     const statusMatch = statusFilter === 'All' || record.status === statusFilter;
-    const categoryMatch = categoryFilter === 'All' || record.category === categoryFilter;
+    
+    // FIX: Resolving standard vs plural category naming variations (e.g., Material vs Materials)
+    const recCat = (record.category || '').toLowerCase();
+    const filtCat = categoryFilter.toLowerCase();
+    const categoryMatch = categoryFilter === 'All' || recCat.includes(filtCat) || filtCat.includes(recCat);
+    
     const searchMatch = record.tenderNumber.toLowerCase().includes(searchTerm.toLowerCase());
     return statusMatch && categoryMatch && searchMatch;
   });
+
   const getStatusColor = (status: string) => {
     const colors: Record<string, string> = {
       'Under Evaluation': 'bg-amber-100 text-amber-800',
@@ -77,6 +120,7 @@ export function RecordsPage() {
     };
     return colors[status] || 'bg-gray-100 text-gray-800';
   };
+
   const formatDate = (dateStr: string | undefined) => {
     if (!dateStr) return '-';
     try {
@@ -85,6 +129,15 @@ export function RecordsPage() {
       return typeof dateStr === 'string' ? dateStr.slice(0, 10) : '-';
     }
   };
+
+  const categoryOptions = [
+    { value: 'All', label: 'All Categories' },
+    ...categories.map((cat: any) => ({
+      value: cat.name,
+      label: cat.name
+    }))
+  ];
+
   return <div className="h-[calc(100vh-140px)] flex flex-col gap-6">
       <div className="flex-shrink-0 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -98,7 +151,7 @@ export function RecordsPage() {
         </Button>
       </div>
 
-      {/* Filters */}
+      {/* Filters Section */}
       <div className="flex-shrink-0 bg-white rounded-lg shadow-sm border border-slate-200 p-4">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1 min-w-[300px]">
@@ -111,157 +164,95 @@ export function RecordsPage() {
             />
           </div>
           <Select className="w-full sm:w-48" options={[{
-          value: 'All',
-          label: 'All Status'
-        }, {
-          value: 'Awarded',
-          label: 'Awarded'
-        }, {
-          value: 'Cancel',
-          label: 'Cancel'
-        }, {
-          value: 'Close',
-          label: 'Close'
-        }, {
-          value: 'Doc Review',
-          label: 'Doc Review'
-        }, {
-          value: 'Negotiate or Clarification',
-          label: 'Negotiate or Clarification'
-        }, {
-          value: 'Re-evaluation',
-          label: 'Re-evaluation'
-        }, {
-          value: 'Reject',
-          label: 'Reject'
-        }, {
-          value: 'Retender',
-          label: 'Retender'
-        }, {
-          value: 'Under Evaluation',
-          label: 'Under Evaluation'
-        }]} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} />
-          <Select className="w-full sm:w-48" options={[{
-          value: 'All',
-          label: 'All Categories'
-        }, {
-          value: 'Goods',
-          label: 'Goods'
-        }, {
-          value: 'Services',
-          label: 'Services'
-        }, {
-          value: 'Works',
-          label: 'Works'
-        }, {
-          value: 'Consultancy',
-          label: 'Consultancy'
-        }]} value={categoryFilter} onChange={e => setCategoryFilter(e.target.value)} />
+              value: 'All',
+              label: 'All Status'
+            }, {
+              value: 'Awarded',
+              label: 'Awarded'
+            }, {
+              value: 'Cancel',
+              label: 'Cancel'
+            }, {
+              value: 'Close',
+              label: 'Close'
+            }, {
+              value: 'Doc Review',
+              label: 'Doc Review'
+            }, {
+              value: 'Negotiate or Clarification',
+              label: 'Negotiate or Clarification'
+            }, {
+              value: 'Re-evaluation',
+              label: 'Re-evaluation'
+            }, {
+              value: 'Reject',
+              label: 'Reject'
+            }, {
+              value: 'Retender',
+              label: 'Retender'
+            }, {
+              value: 'Under Evaluation',
+              label: 'Under Evaluation'
+            }]} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} />
+          
+          <Select 
+            className="w-full sm:w-48" 
+            options={categoryOptions} 
+            value={categoryFilter} 
+            onChange={e => setCategoryFilter(e.target.value)} 
+          />
         </div>
       </div>
 
-      {/* Table Section */}
+      {/* Main Data Table */}
       <div className="flex-1 min-h-0 bg-white/90 backdrop-blur-sm rounded-xl shadow-lg border border-white/20 overflow-hidden ring-1 ring-slate-200 flex flex-col">
         <div className="flex-1 overflow-auto custom-scrollbar">
           <table className="w-full text-sm text-left min-w-[1800px]">
             <thead className="text-xs text-slate-500 uppercase bg-slate-50 border-b border-slate-200 sticky top-0 z-20">
               <tr>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Tender No
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Department
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Category
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Description
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Bid Start
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Bid Open
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Bid Close
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  File Sent TEC
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Bond Number
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Bank/PIV
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Status
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  TEC Chairman
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Awarded To
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap">
-                  Delay
-                </th>
-                <th className="px-4 py-3 font-medium whitespace-nowrap sticky right-0 bg-slate-50 z-20 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">
-                  Actions
-                </th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Tender No</th>
+                {/* 🎯 Table Header updated from Department to Unit */}
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Unit</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Category</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Description</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Result/Bid Start</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Bid Open</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Bid Close</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">File Sent TEC</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Bond Number</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Bank/PIV</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Status</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">TEC Chairman</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Awarded To</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap">Delay</th>
+                <th className="px-4 py-3 font-medium whitespace-nowrap sticky right-0 bg-slate-50 z-20 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)]">Actions</th>
               </tr>
             </thead>
             <tbody>
               {filteredRecords.length > 0 ? filteredRecords.map((record, idx) => <tr key={record.id} className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
-                    <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">
-                      {record.tenderNumber}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {record.relevantTo}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {record.category}
-                    </td>
+                    <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{record.tenderNumber}</td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.relevantTo}</td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.category}</td>
                     <td className="px-4 py-3 text-slate-700">
                       <span className="block max-w-xs truncate" title={record.description}>
                         {record.description}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {formatDate(record.bidStartDate)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {formatDate(record.bidOpenDate)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {formatDate(record.bidClosingDate)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {formatDate(record.fileSentToTecDate)}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {record.bidBondNumber || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {record.bidBondBank || '-'}
-                    </td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{formatDate(record.bidStartDate)}</td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{formatDate(record.bidOpenDate)}</td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{formatDate(record.bidClosingDate)}</td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{formatDate(record.fileSentToTecDate)}</td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.bidBondNumber || '-'}</td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.bidBondBank || '-'}</td>
                     <td className="px-4 py-3 whitespace-nowrap">
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(record.status)}`}>
                         {record.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {record.tecChairman}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {record.awardedTo || '-'}
-                    </td>
-                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">
-                      {record.delay !== undefined ? `${record.delay} days` : '-'}
-                    </td>
-                    <td className="px-4 py-3 whitespace-nowrap sticky right-0 z-10 bg-white group-hover:bg-slate-50 shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)] transition-colors">
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.tecChairman}</td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.awardedTo || '-'}</td>
+                    <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.delay !== undefined ? `${record.delay} days` : '-'}</td>
+                    <td className="px-4 py-3 whitespace-nowrap sticky right-0 z-10 bg-white shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)] transition-colors">
                       <div className="flex items-center gap-2">
                         <button onClick={() => navigate(`/records/view/${record.id}`)} className="p-1 text-slate-400 hover:text-[#bd5d2a] transition-colors" title="View">
                           <Eye className="w-4 h-4" />
@@ -284,6 +275,7 @@ export function RecordsPage() {
         </div>
       </div>
 
+      {/* Confirmation Modal */}
       <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Delete Record" footer={<>
             <Button variant="ghost" onClick={() => setDeleteId(null)}>
               Cancel
@@ -293,8 +285,7 @@ export function RecordsPage() {
             </Button>
           </>}>
         <p className="text-slate-600">
-          Are you sure you want to delete this record? This action cannot be
-          undone.
+          Are you sure you want to delete this record? This action cannot be undone.
         </p>
       </Modal>
     </div>;
