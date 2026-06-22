@@ -19,9 +19,29 @@ const protect = function (req, res, next) {
 
 const authorize = (...allowedRoles) => {
   return (req, res, next) => {
-    if (!req.user || !allowedRoles.includes(req.user.role)) {
+    if (!req.user) {
       return res.status(403).json({ 
-        message: `Access denied. Your role '${req.user?.role || 'Guest'}' is not authorized to access this function.` 
+        message: 'Access denied. User session context not discovered.' 
+      });
+    }
+
+    // 🎯 Dynamically expand permitted roles to natively bridge legacy and standardized roles
+    const expandedRoles = [];
+    allowedRoles.forEach(role => {
+      const cleanRole = role.toLowerCase().trim();
+      expandedRoles.push(cleanRole);
+      
+      if (cleanRole === 'commercial user') expandedRoles.push('clerk');
+      if (cleanRole === 'clerk') expandedRoles.push('commercial user');
+      if (cleanRole === 'c.com user') expandedRoles.push('cecom');
+      if (cleanRole === 'cecom') expandedRoles.push('c.com user');
+    });
+
+    const currentUserRole = (req.user.role || '').toLowerCase().trim();
+
+    if (!expandedRoles.includes(currentUserRole)) {
+      return res.status(403).json({ 
+        message: `Access denied. Your role '${req.user.role || 'Guest'}' is not authorized to access this function.` 
       });
     }
     next();

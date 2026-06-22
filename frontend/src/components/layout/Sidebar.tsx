@@ -9,7 +9,6 @@ interface SidebarProps {
 export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const navigate = useNavigate();
 
-  
   const getCleanRole = (): string => {
     const storedUser = sessionStorage.getItem('user');
     if (storedUser) {
@@ -23,7 +22,6 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
 
   const userRole = getCleanRole();
 
- 
   const hasRoleAccess = (allowed: string[] | undefined) => {
     if (!allowed) return true; 
     return allowed.map(r => r.toLowerCase().trim()).includes(userRole);
@@ -34,7 +32,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     navigate('/login');
   };
 
-  
+  // NAVIGATION CONFIGURATION - FIXED FOR CLERK SUB-ITEM VISIBILITY
   const navItems = [{
     title: 'Dashboard',
     path: '/dashboard',
@@ -43,7 +41,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     title: 'Records',
     path: '/records',
     icon: <FileText className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement', 'c.com user', 'commercial user'],
+    allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'],
     subItems: [{
       title: 'All Records',
       path: '/records',
@@ -52,13 +50,13 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Record',
       path: '/records/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement'] 
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'Categories',
     path: '/categories',
     icon: <FolderOpen className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement'],
+    allowedRoles: ['Admin', 'Procurement', 'Clerk', 'CECOM'],
     subItems: [{
       title: 'Category List',
       path: '/categories',
@@ -67,28 +65,28 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Category',
       path: '/categories/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement']
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
-    title: 'Departments',
+    title: 'Units',
     path: '/departments',
     icon: <Briefcase className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement'], 
+    allowedRoles: ['Admin', 'Procurement', 'Clerk', 'CECOM'], 
     subItems: [{
-      title: 'Department List',
+      title: 'Unit List',
       path: '/departments',
       icon: <Briefcase className="w-4 h-4" />
     }, {
-      title: 'Add Department',
+      title: 'Add Unit',
       path: '/departments/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement']
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'TEC Staff',
     path: '/tec-staff',
     icon: <Users className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement'], 
+    allowedRoles: ['Admin', 'Procurement', 'Clerk', 'CECOM'], 
     subItems: [{
       title: 'Staff List',
       path: '/tec-staff',
@@ -97,13 +95,13 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Staff',
       path: '/tec-staff/add',
       icon: <UserPlus className="w-4 h-4" />,
-      allowedRoles: ['Admin'] 
+      allowedRoles: ['Admin', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'Bidders',
     path: '/bidders',
     icon: <Building2 className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement', 'commercial user'], 
+    allowedRoles: ['Admin', 'Procurement', 'Clerk', 'CECOM'], 
     subItems: [{
       title: 'Supplier List',
       path: '/bidders',
@@ -112,13 +110,13 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Supplier',
       path: '/bidders/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement']
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'TEC Committee',
     path: '/bid-opening',
     icon: <Gavel className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement', 'c.com user'], 
+    allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'], 
     subItems: [{
       title: 'View All Committees',
       path: '/bid-opening',
@@ -127,13 +125,13 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Committee',
       path: '/bid-opening/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement']
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'User Management',
     path: '/users',
     icon: <Shield className="w-5 h-5" />,
-    allowedRoles: ['Admin'],
+    allowedRoles: ['Admin', 'CECOM'], // 🔒 Strict Admin/CECOM Only
     subItems: [{
       title: 'All Users',
       path: '/users',
@@ -147,7 +145,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     title: 'Audit Log',
     path: '/audit-log',
     icon: <FileSearch className="w-5 h-5" />,
-    allowedRoles: ['Admin'] 
+    allowedRoles: ['Admin', 'CECOM'] // 🔒 Strict Admin/CECOM Only
   }, {
     title: 'Export',
     path: '/export',

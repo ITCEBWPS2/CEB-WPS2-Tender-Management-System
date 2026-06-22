@@ -28,17 +28,17 @@ export function UserManagementPage() {
           setUsers(prev => prev.filter(u => u.id !== deleteId));
         } else {
           const err = await res.json().catch(() => ({ message: 'Failed to delete' }));
-          alert(err.message || 'Failed to delete user');
+          alert(err.message || 'Error: Failed to delete user record.');
         }
       } catch (err) {
         console.error(err);
-        alert('Failed to delete user');
+        alert('Error: Failed to delete user record.');
       } finally {
         setDeleteId(null);
       }
     })();
   };
-
+  
   useEffect(() => {
     const load = async () => {
       try {
@@ -48,15 +48,30 @@ export function UserManagementPage() {
         });
         if (!res.ok) throw new Error('Failed to fetch users');
         const data = await res.json();
-        const mapped = Array.isArray(data) ? data.map((u: any) => ({
-          ...u,
-          id: u._id || u.id,
-          lastLogin: u.lastLogin ? String(u.lastLogin).slice(0, 19).replace('T', ' ') : '' ,
-          createdDate: u.createdAt ? String(u.createdAt).slice(0, 10) : ''
-        })) : [];
+        
+        //  Dynamically map and sanitize legacy backend roles to new UI standards
+        const mapped = Array.isArray(data) ? data.map((u: any) => {
+          const rawRole = (u.role || '').toLowerCase().trim();
+          let displayRole = u.role;
+          
+          if (rawRole === 'c.com user') {
+            displayRole = 'CECOM';
+          } else if (rawRole === 'commercial user') {
+            displayRole = 'Clerk';
+          }
+
+          return {
+            ...u,
+            id: u._id || u.id,
+            role: displayRole, 
+            lastLogin: u.lastLogin ? String(u.lastLogin).slice(0, 19).replace('T', ' ') : '' ,
+            createdDate: u.createdAt ? String(u.createdAt).slice(0, 10) : ''
+          };
+        }) : [];
+        
         setUsers(mapped);
       } catch (err) {
-        console.error('Failed to load users', err);
+        console.error('Failed to load users:', err);
         setUsers([]);
       }
     };
@@ -75,6 +90,9 @@ export function UserManagementPage() {
   }, {
     header: 'Email',
     accessorKey: 'email' as keyof SystemUser
+  }, {
+    header: 'EPF Number',
+    accessorKey: 'epfNumber' as unknown as keyof SystemUser 
   }, {
     header: 'Role',
     accessorKey: 'role' as keyof SystemUser,
@@ -123,34 +141,34 @@ export function UserManagementPage() {
       </div>
 
       <DataTable data={filteredUsers} columns={columns} searchKey="name" searchPlaceholder="Search by name..." filters={<div className="flex gap-2">
-            {/* */}
+            {/*Role options updated to CECOM and Clerk for accurate data filtering */}
             <Select className="w-44" options={[{
-        value: 'All',
-        label: 'All Roles'
-      }, {
-        value: 'Admin',
-        label: 'Admin'
-      }, {
-        value: 'Procurement',
-        label: 'Procurement'
-      }, {
-        value: 'c.com user',
-        label: 'c.com user'
-      }, {
-        value: 'commercial user',
-        label: 'commercial user'
-      }]} value={roleFilter} onChange={e => setRoleFilter(e.target.value)} />
+              value: 'All',
+              label: 'All Roles'
+            }, {
+              value: 'Admin',
+              label: 'Admin'
+            }, {
+              value: 'Procurement',
+              label: 'Procurement'
+            }, {
+              value: 'CECOM',
+              label: 'CECOM'
+            }, {
+              value: 'Clerk',
+              label: 'Clerk'
+            }]} value={roleFilter} onChange={e => setRoleFilter(e.target.value)} />
             
             <Select className="w-32" options={[{
-        value: 'All',
-        label: 'All Status'
-      }, {
-        value: 'Active',
-        label: 'Active'
-      }, {
-        value: 'Inactive',
-        label: 'Inactive'
-      }]} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} />
+              value: 'All',
+              label: 'All Status'
+            }, {
+              value: 'Active',
+              label: 'Active'
+            }, {
+              value: 'Inactive',
+              label: 'Inactive'
+            }]} value={statusFilter} onChange={e => setStatusFilter(e.target.value)} />
           </div>} />
 
       <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Delete User" footer={<>
@@ -162,8 +180,7 @@ export function UserManagementPage() {
             </Button>
           </>}>
         <p className="text-slate-600">
-          Are you sure you want to delete this user? This action cannot be
-          undone.
+          Are you sure you want to delete this user? This action cannot be undone.
         </p>
       </Modal>
     </div>;

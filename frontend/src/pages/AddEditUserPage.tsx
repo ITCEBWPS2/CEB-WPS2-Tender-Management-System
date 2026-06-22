@@ -10,9 +10,11 @@ export function AddEditUserPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const isEdit = !!id;
-  const [formData, setFormData] = useState<Partial<SystemUser & { password?: string }>>({
+  
+  // State configuration extending SystemUser type definition with additional fields
+  const [formData, setFormData] = useState<Partial<SystemUser & { password?: string; epfNumber?: string }>>({
     status: 'Active',
-    role: 'Admin' //  Default Role  'Admin' 
+    role: 'Admin' 
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -33,7 +35,7 @@ export function AddEditUserPage() {
         setFormData(normalized);
         return;
       } catch (err) {
-        console.error('Failed to load user', err);
+        console.error('Failed to load user details:', err);
       }
     };
     load();
@@ -54,10 +56,12 @@ export function AddEditUserPage() {
     }
   };
 
+  // Form input validation rules
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = 'Name is required';
     if (!formData.email) newErrors.email = 'Email is required';
+    if (!formData.epfNumber) newErrors.epfNumber = 'EPF Number is required'; 
     if (!formData.role) newErrors.role = 'Role is required';
     if (!isEdit && !formData.password) newErrors.password = 'Password is required';
     setErrors(newErrors);
@@ -84,13 +88,13 @@ export function AddEditUserPage() {
           });
           if (!res.ok) {
             const err = await res.json().catch(() => ({ message: 'Failed to save user' }));
-            alert(err.message || 'Failed to save user');
+            alert(err.message || 'Error: Failed to save user records.');
             return;
           }
           navigate('/users');
         } catch (err) {
           console.error(err);
-          alert('Failed to save user');
+          alert('Error: Failed to save user records.');
         }
       })();
     }
@@ -117,30 +121,40 @@ export function AddEditUserPage() {
 
           <Input label="Email Address" name="email" type="email" value={formData.email || ''} onChange={handleChange} error={errors.email} placeholder="e.g. john.doe@tec.gov" />
 
-          {/* Role options */}
+          <Input 
+            label="EPF Number" 
+            name="epfNumber" 
+            type="text" 
+            value={formData.epfNumber || ''} 
+            onChange={handleChange} 
+            error={errors.epfNumber} 
+            placeholder="e.g. 12345" 
+          />
+
+          {/* Roles updated dynamically to CECOM and Clerk as per technical specifications */}
           <Select label="Role" name="role" value={formData.role || 'Admin'} onChange={handleChange} error={errors.role} options={[{
-          value: 'Admin',
-          label: 'Admin'
-        }, {
-          value: 'Procurement',
-          label: 'Procurement'
-        }, {
-          value: 'c.com user',
-          label: 'c.com user'
-        }, {
-          value: 'commercial user',
-          label: 'commercial user'
-        }]} />
+            value: 'Admin',
+            label: 'Admin'
+          }, {
+            value: 'Procurement',
+            label: 'Procurement'
+          }, {
+            value: 'CECOM',
+            label: 'CECOM'
+          }, {
+            value: 'Clerk',
+            label: 'Clerk'
+          }]} />
 
           {!isEdit && <Input label="Password" name="password" type="password" value={formData.password || ''} onChange={handleChange} error={errors.password} placeholder="Enter password" />}
 
           <Select label="Status" name="status" value={formData.status || 'Active'} onChange={handleChange} options={[{
-          value: 'Active',
-          label: 'Active'
-        }, {
-          value: 'Inactive',
-          label: 'Inactive'
-        }]} />
+            value: 'Active',
+            label: 'Active'
+          }, {
+            value: 'Inactive',
+            label: 'Inactive'
+          }]} />
         </div>
 
         <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-slate-100">

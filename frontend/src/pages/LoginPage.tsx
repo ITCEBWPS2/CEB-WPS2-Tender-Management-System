@@ -4,19 +4,21 @@ import { Lock, Mail, Shield } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import backgr from '../assets/backgr.png';
+
 export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(false);
+
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setIsLoading(true);
+    
     (async () => {
-
-const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
+      const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
       let lastError: any = null;
       for (const url of endpoints) {
         try {
@@ -54,6 +56,7 @@ const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
       setIsLoading(false);
     })();
   };
+
   return <div style={{backgroundImage: `url(${backgr})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat'}} className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
       <div className="max-w-md w-full bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
         <div className="bg-amber-700 p-8 text-center">
@@ -73,7 +76,15 @@ const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
             <div className="space-y-4">
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-5 w-5 text-slate-400" />
-                <Input type="email" placeholder="Email Address" className="pl-10" value={email} onChange={e => setEmail(e.target.value)} required />
+                {/*  */}
+                <Input 
+                  type="text" 
+                  placeholder="Email Address or EPF Number" 
+                  className="pl-10" 
+                  value={email} 
+                  onChange={e => setEmail(e.target.value)} 
+                  required 
+                />
               </div>
 
               <div className="relative">

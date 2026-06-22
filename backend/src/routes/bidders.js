@@ -1,18 +1,18 @@
 const express = require('express');
 const router = express.Router();
 
-
 const { protect, authorize } = require('../middleware/auth');
 const ctrl = require('../controllers/bidderController');
 
-router.get('/', protect, authorize('Admin', 'Procurement', 'c.com user', 'commercial user'), ctrl.list);
 
-router.post('/', protect, authorize('Admin', 'Procurement'), ctrl.create);
+router.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), ctrl.list);
 
-router.get('/:id', protect, authorize('Admin', 'Procurement', 'c.com user', 'commercial user'), ctrl.get);
+router.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), ctrl.create);
 
-router.put('/:id', protect, authorize('Admin', 'Procurement'), ctrl.update);
+router.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), ctrl.get);
 
-router.delete('/:id', protect, authorize('Admin'), ctrl.remove);
+router.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), ctrl.update);
+
+router.delete('/:id', protect, authorize('Admin', 'CECOM'), ctrl.remove);
 
 module.exports = router;
