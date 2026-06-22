@@ -3,41 +3,156 @@ import { Download, FileText, FileSpreadsheet, Calendar } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
+
 export function ExportPage() {
   const [exportFormat, setExportFormat] = useState('excel');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
   const [category, setCategory] = useState('All');
   const [status, setStatus] = useState('All');
-  const handleExportRecords = () => {
-    console.log('Exporting system records...', {
-      exportFormat,
-      dateFrom,
-      dateTo,
-      category,
-      status
-    });
-    // Simulate download
-    alert(`Downloading System Records as ${exportFormat.toUpperCase()}...`);
+
+  // 📦 1️⃣ REAL EXPORT LOGIC: Component එක ඇතුළත නිවැරදි සීමාව (Scope) තුළට ගෙන ආවා whutto
+  const handleExportRecords = async () => {
+    try {
+      console.log('Exporting system records...', {
+        exportFormat,
+        dateFrom,
+        dateTo,
+        category,
+        status
+      });
+
+      const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken');
+      const res = await fetch('/api/records', {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+      });
+
+      if (!res.ok) throw new Error('Failed to fetch records');
+      
+      const allRecords: any[] = await res.json();
+      let filtered: any[] = Array.isArray(allRecords) ? allRecords : [];
+
+      // Frontend filtering engines
+      if (category !== 'All') {
+        filtered = filtered.filter((r: any) => (r.category || '').toString().toLowerCase() === category.toLowerCase());
+      }
+
+      if (status !== 'All') {
+        filtered = filtered.filter((r: any) => {
+          const s = (r.status || '').toString().toLowerCase();
+          if (status === 'Under Evaluation') {
+            return s.includes('evaluation') || s.includes('evacuation');
+          }
+          return s === status.toLowerCase();
+        });
+      }
+
+      if (dateFrom) {
+        filtered = filtered.filter((r: any) => new Date(r.date) >= new Date(dateFrom));
+      }
+
+      if (dateTo) {
+        filtered = filtered.filter((r: any) => new Date(r.date) <= new Date(dateTo));
+      }
+
+      // Generate the real styled spreadsheet blob
+      if (exportFormat === 'excel') {
+        const excelHtml = `
+          <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
+          <head>
+            <style>
+              th { background-color: #bd5d2a; color: white; font-weight: bold; padding: 8px; }
+              td { padding: 6px; border: 1px solid #cbd5e1; }
+            </style>
+          </head>
+          <body>
+            <table border="1">
+              <thead>
+                <tr>
+                  <th>Tender ID</th>
+                  <th>Title</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Date</th>
+                  <th>Supplier</th>
+                  <th>Delay (Days)</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${filtered.map((r: any) => `
+                  <tr>
+                    <td>${r.id || ''}</td>
+                    <td>${r.title || ''}</td>
+                    <td>${r.category || ''}</td>
+                    <td>${r.status || ''}</td>
+                    <td>${r.date || ''}</td>
+                    <td>${r.supplier || ''}</td>
+                    <td>${r.delay || 0}</td>
+                  </tr>
+                `).join('')}
+              </tbody>
+            </table>
+          </body>
+          </html>
+        `;
+        const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Tender_Records_${new Date().toISOString().split('T')[0]}.xls`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      } else {
+        const headers = ['Tender ID', 'Title', 'Category', 'Status', 'Date', 'Supplier', 'Delay (Days)'];
+        const csvRows = filtered.map((r: any) => [
+          r.id || '',
+          `"${(r.title || '').replace(/"/g, '""')}"`,
+          r.category || '',
+          r.status || '',
+          r.date || '',
+          `"${(r.supplier || '').replace(/"/g, '""')}"`,
+          r.delay || 0
+        ]);
+        const csvContent = [headers.join(','), ...csvRows.map(row => row.join(','))].join('\n');
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `Tender_Records_${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch (error) {
+      console.error('Export Error:', error);
+    }
   };
+
+  // 📝 2️⃣ Static document template downloads
   const handleDownloadTechnicalGood = () => {
     console.log('Downloading Technical Evaluation Good document...');
-    // Simulate download
-    alert('Downloading Technical Evaluation Good.docx...');
+    const a = document.createElement('a');
+    a.href = '/templates/Technical_Evaluation_Good.docx';
+    a.download = 'Technical_Evaluation_Good.docx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
+
   const handleDownloadTechnicalService = () => {
     console.log('Downloading Final Technical Evaluation Service document...');
-    // Simulate download
-    alert('Downloading Final Technical Evaluation Service.docx...');
+    const a = document.createElement('a');
+    a.href = '/templates/Final_Technical_Evaluation_Service.docx';
+    a.download = 'Final_Technical_Evaluation_Service.docx';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
-  return <div className="space-y-6">
-      {/* <div>
-        <h2 className="text-2xl font-bold text-slate-900">Export Data</h2>
-        <p className="text-slate-500">
-          Download system records and technical evaluation documents
-        </p>
-      </div> */}
 
+  return <div className="space-y-6">
       {/* Download System Records */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
         <div className="flex items-start gap-4 mb-6">
@@ -49,8 +164,7 @@ export function ExportPage() {
               Download System Records
             </h3>
             <p className="text-sm text-slate-500">
-              Export all tender records with customizable filters and date
-              ranges
+              Export all tender records with customizable filters and date ranges
             </p>
           </div>
         </div>
@@ -59,13 +173,10 @@ export function ExportPage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Select label="Export Format" value={exportFormat} onChange={e => setExportFormat(e.target.value)} options={[{
             value: 'excel',
-            label: 'Excel (.xlsx)'
+            label: 'Excel (.xls)'
           }, {
             value: 'csv',
             label: 'CSV (.csv)'
-          }, {
-            value: 'pdf',
-            label: 'PDF (.pdf)'
           }]} />
 
             <Select label="Category Filter" value={category} onChange={e => setCategory(e.target.value)} options={[{
@@ -89,8 +200,8 @@ export function ExportPage() {
             value: 'All',
             label: 'All Status'
           }, {
-            value: 'Under Evacuation',
-            label: 'Under Evacuation'
+            value: 'Under Evaluation',
+            label: 'Under Evaluation'
           }, {
             value: 'Doc Review',
             label: 'Doc Review'
@@ -179,8 +290,7 @@ export function ExportPage() {
                 Final Technical Evaluation Service
               </h3>
               <p className="text-sm text-slate-500">
-                Download the final technical evaluation template for service
-                contracts
+                Download the final technical evaluation template for service contracts
               </p>
             </div>
           </div>
@@ -205,37 +315,5 @@ export function ExportPage() {
           </Button>
         </div>
       </div>
-
-      {/* Export Information */}
-      {/* <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <div className="flex gap-3">
-          <div className="flex-shrink-0">
-            <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-            </svg>
-          </div>
-          <div>
-            <h4 className="text-sm font-medium text-blue-900 mb-1">
-              Export Information
-            </h4>
-            <ul className="text-sm text-blue-700 space-y-1">
-              <li>
-                • System records include all tender information, dates, and
-                committee details
-              </li>
-              <li>
-                • Technical evaluation templates are pre-formatted Word
-                documents
-              </li>
-              <li>
-                • All exports are generated in real-time based on current data
-              </li>
-              <li>
-                • Downloaded files are saved to your default downloads folder
-              </li>
-            </ul>
-          </div>
-        </div>
-      </div> */}
     </div>;
 }

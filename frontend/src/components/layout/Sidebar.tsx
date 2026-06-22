@@ -32,7 +32,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     navigate('/login');
   };
 
-  // NAVIGATION CONFIGURATION - CECOM NOW HAS FULL ADMINISTRATIVE VISIBILITY
+  // NAVIGATION CONFIGURATION - FIXED FOR CLERK SUB-ITEM VISIBILITY
   const navItems = [{
     title: 'Dashboard',
     path: '/dashboard',
@@ -50,7 +50,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Record',
       path: '/records/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM'] 
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'Categories',
@@ -65,7 +65,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Category',
       path: '/categories/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM']
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'Units',
@@ -80,7 +80,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Unit',
       path: '/departments/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM']
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'TEC Staff',
@@ -95,7 +95,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Staff',
       path: '/tec-staff/add',
       icon: <UserPlus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'CECOM'] 
+      allowedRoles: ['Admin', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'Bidders',
@@ -110,7 +110,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Supplier',
       path: '/bidders/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM']
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'TEC Committee',
@@ -125,13 +125,13 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Committee',
       path: '/bid-opening/add',
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM']
+      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
     }]
   }, {
     title: 'User Management',
     path: '/users',
     icon: <Shield className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'CECOM'],
+    allowedRoles: ['Admin', 'CECOM'], // 🔒 Strict Admin/CECOM Only
     subItems: [{
       title: 'All Users',
       path: '/users',
@@ -145,7 +145,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     title: 'Audit Log',
     path: '/audit-log',
     icon: <FileSearch className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'CECOM'] 
+    allowedRoles: ['Admin', 'CECOM'] // 🔒 Strict Admin/CECOM Only
   }, {
     title: 'Export',
     path: '/export',

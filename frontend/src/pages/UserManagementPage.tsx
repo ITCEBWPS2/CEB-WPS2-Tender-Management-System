@@ -38,7 +38,7 @@ export function UserManagementPage() {
       }
     })();
   };
-
+  
   useEffect(() => {
     const load = async () => {
       try {
@@ -49,7 +49,7 @@ export function UserManagementPage() {
         if (!res.ok) throw new Error('Failed to fetch users');
         const data = await res.json();
         
-        // 🎯 Dynamically map and sanitize legacy backend roles to new UI standards
+        //  Dynamically map and sanitize legacy backend roles to new UI standards
         const mapped = Array.isArray(data) ? data.map((u: any) => {
           const rawRole = (u.role || '').toLowerCase().trim();
           let displayRole = u.role;
@@ -141,7 +141,7 @@ export function UserManagementPage() {
       </div>
 
       <DataTable data={filteredUsers} columns={columns} searchKey="name" searchPlaceholder="Search by name..." filters={<div className="flex gap-2">
-            {/* 🎯 Role options updated to CECOM and Clerk for accurate data filtering */}
+            {/*Role options updated to CECOM and Clerk for accurate data filtering */}
             <Select className="w-44" options={[{
               value: 'All',
               label: 'All Roles'

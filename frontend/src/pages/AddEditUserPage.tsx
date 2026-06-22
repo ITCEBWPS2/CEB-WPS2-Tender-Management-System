@@ -131,7 +131,7 @@ export function AddEditUserPage() {
             placeholder="e.g. 12345" 
           />
 
-          {/* 🎯 Roles updated dynamically to CECOM and Clerk as per technical specifications */}
+          {/* Roles updated dynamically to CECOM and Clerk as per technical specifications */}
           <Select label="Role" name="role" value={formData.role || 'Admin'} onChange={handleChange} error={errors.role} options={[{
             value: 'Admin',
             label: 'Admin'
