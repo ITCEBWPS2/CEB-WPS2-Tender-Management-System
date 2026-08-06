@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Bidder } from '../utils/types';
+import { apiFetch } from '../utils/api';
 export function AddEditBidderPage() {
   const navigate = useNavigate();
   const {
@@ -18,7 +19,7 @@ export function AddEditBidderPage() {
       (async () => {
         try {
           const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-          const res = await fetch(`/api/bidders/${id}`, {
+          const res = await apiFetch(`/api/bidders/${id}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined
           });
           const data = await res.json();
@@ -49,7 +50,7 @@ export function AddEditBidderPage() {
         };
         const url = isEdit ? `/api/bidders/${id}` : '/api/bidders';
         const method = isEdit ? 'PUT' : 'POST';
-        const res = await fetch(url, {
+        const res = await apiFetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json',

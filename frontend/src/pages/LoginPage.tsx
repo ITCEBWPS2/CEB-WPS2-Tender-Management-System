@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import backgr from '../assets/backgr.png';
 
+
 export function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');

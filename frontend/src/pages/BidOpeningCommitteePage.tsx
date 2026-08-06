@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { BidOpeningCommittee } from '../utils/types';
+import { apiFetch } from '../utils/api';
 export function BidOpeningCommitteePage() {
   const navigate = useNavigate();
   const [committees, setCommittees] = useState<BidOpeningCommittee[]>([]);
@@ -16,7 +17,7 @@ export function BidOpeningCommitteePage() {
       if (!deleteId) return;
       try {
         const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
-        const res = await fetch(`/api/committees/${deleteId}`, {
+        const res = await apiFetch(`/api/committees/${deleteId}`, {
           method: 'DELETE',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
@@ -39,7 +40,7 @@ export function BidOpeningCommitteePage() {
     const load = async () => {
       try {
         const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
-        const res = await fetch('/api/committees', {
+        const res = await apiFetch('/api/committees', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (res.ok) {

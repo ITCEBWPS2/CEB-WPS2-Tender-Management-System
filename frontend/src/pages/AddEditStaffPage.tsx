@@ -4,6 +4,7 @@ import { ArrowLeft, Save } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Staff } from '../utils/types';
+import { apiFetch } from '../utils/api';
 export function AddEditStaffPage() {
   const navigate = useNavigate();
   const {
@@ -17,7 +18,7 @@ export function AddEditStaffPage() {
       if (!isEdit) return;
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch(`/api/staff/${id}`, {
+        const res = await apiFetch(`/api/staff/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (!res.ok) throw new Error('Failed to fetch staff');
@@ -53,7 +54,7 @@ export function AddEditStaffPage() {
         const method = isEdit ? 'PUT' : 'POST';
         const body = { ...formData } as any;
         Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
-        const res = await fetch(url, {
+        const res = await apiFetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json',

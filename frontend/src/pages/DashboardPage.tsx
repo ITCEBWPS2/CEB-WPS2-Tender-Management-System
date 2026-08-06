@@ -5,6 +5,7 @@ import { PieChart } from '../components/dashboard/PieChart';
 import { BarChart } from '../components/dashboard/BarChart';
 import { AgingTable } from '../components/dashboard/AgingTable';
 import { Record as TmsRecord } from '../utils/types';
+import { apiFetch } from '../utils/api'; 
 
 export function DashboardPage() {
   const [records, setRecords] = useState<TmsRecord[]>([]);
@@ -14,7 +15,7 @@ export function DashboardPage() {
     const loadData = async () => {
       try {
         const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken');
-        const res = await fetch('/api/records', {
+        const res = await apiFetch('/api/records', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (res.ok) {

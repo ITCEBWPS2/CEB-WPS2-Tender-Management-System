@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { SystemUser } from '../utils/types';
+import { apiFetch } from '../utils/api';
 
 export function AddEditUserPage() {
   const navigate = useNavigate();
@@ -23,7 +24,7 @@ export function AddEditUserPage() {
       if (!isEdit) return;
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch(`/api/users/${id}`, {
+        const res = await apiFetch(`/api/users/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (!res.ok) throw new Error('Failed to fetch user');
@@ -78,7 +79,7 @@ export function AddEditUserPage() {
           const method = isEdit ? 'PUT' : 'POST';
           const body = { ...formData } as any;
           Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
-          const res = await fetch(url, {
+          const res = await apiFetch(url, {
             method,
             headers: {
               'Content-Type': 'application/json',

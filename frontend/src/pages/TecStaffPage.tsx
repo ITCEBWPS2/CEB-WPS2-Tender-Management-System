@@ -5,6 +5,8 @@ import { DataTable } from '../components/shared/DataTable';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Staff } from '../utils/types';
+import { apiFetch } from '../utils/api';
+
 export function TecStaffPage() {
   const navigate = useNavigate();
   const [staff, setStaff] = useState<Staff[]>([]);
@@ -14,7 +16,7 @@ export function TecStaffPage() {
       if (!deleteId) return;
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch(`/api/staff/${deleteId}`, {
+        const res = await apiFetch(`/api/staff/${deleteId}`, {
           method: 'DELETE',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
@@ -37,7 +39,7 @@ export function TecStaffPage() {
     const load = async () => {
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch('/api/staff', {
+        const res = await apiFetch('/api/staff', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (!res.ok) throw new Error('Failed to fetch staff');

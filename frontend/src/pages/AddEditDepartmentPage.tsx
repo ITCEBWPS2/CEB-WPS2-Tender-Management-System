@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { Department } from '../utils/types';
+import { apiFetch } from '../utils/api';
 
 export function AddEditDepartmentPage() {
   const navigate = useNavigate();
@@ -45,7 +46,7 @@ export function AddEditDepartmentPage() {
       (async () => {
         try {
           const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-          const res = await fetch(`/api/departments/${id}`, {
+          const res = await apiFetch(`/api/departments/${id}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined
           });
           if (res.ok) {
@@ -82,7 +83,7 @@ export function AddEditDepartmentPage() {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const url = isEdit ? `/api/departments/${id}` : '/api/departments';
         const method = isEdit ? 'PUT' : 'POST';
-        const res = await fetch(url, {
+        const res = await apiFetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json',

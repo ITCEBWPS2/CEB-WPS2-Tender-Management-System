@@ -7,6 +7,8 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { SystemUser } from '../utils/types';
+import { apiFetch } from '../utils/api';
+
 
 export function UserManagementPage() {
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ export function UserManagementPage() {
       if (!deleteId) return;
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch(`/api/users/${deleteId}`, {
+        const res = await apiFetch(`/api/users/${deleteId}`, {
           method: 'DELETE',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
@@ -43,7 +45,7 @@ export function UserManagementPage() {
     const load = async () => {
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch('/api/users', {
+        const res = await apiFetch('/api/users', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (!res.ok) throw new Error('Failed to fetch users');

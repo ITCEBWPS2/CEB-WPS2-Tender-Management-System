@@ -5,7 +5,9 @@ exports.list = async (req, res, next) => {
   try {
     const items = await Record.find().sort('-createdAt');
     res.json(items);
-  } catch (err) { next(err); }
+  } catch (err) { 
+    console.error(err);
+    next(err); }
 };
 
 exports.create = async (req, res, next) => {

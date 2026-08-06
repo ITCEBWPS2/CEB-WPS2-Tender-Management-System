@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { CategoryItem } from '../utils/types';
+import { apiFetch } from '../utils/api';
 
 export function AddEditCategoryPage() {
   const navigate = useNavigate();
@@ -22,7 +23,7 @@ export function AddEditCategoryPage() {
       (async () => {
         try {
           const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-          const res = await fetch(`/api/categories/${id}`, {
+          const res = await apiFetch(`/api/categories/${id}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined
           });
           if (res.ok) {
@@ -72,7 +73,7 @@ export function AddEditCategoryPage() {
           const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
           const url = isEdit ? `/api/categories/${id}` : '/api/categories';
           const method = isEdit ? 'PUT' : 'POST';
-          const res = await fetch(url, {
+          const res = await apiFetch(url, {
             method,
             headers: {
               'Content-Type': 'application/json',

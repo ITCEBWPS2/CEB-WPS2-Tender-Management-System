@@ -6,6 +6,7 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
 import { BidOpeningCommittee } from '../utils/types';
+import { apiFetch } from '../utils/api';
 export function AddEditCommitteePage() {
   const navigate = useNavigate();
   const {
@@ -24,7 +25,7 @@ export function AddEditCommitteePage() {
       if (!isEdit) return;
       try {
         const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
-        const res = await fetch(`/api/committees/${id}`, {
+        const res = await apiFetch(`/api/committees/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (!res.ok) throw new Error('Failed to fetch');
@@ -46,7 +47,7 @@ export function AddEditCommitteePage() {
     const loadStaff = async () => {
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('token');
-        const res = await fetch('/api/staff', {
+        const res = await apiFetch('/api/staff', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (!res.ok) throw new Error('Failed to fetch staff');
@@ -111,7 +112,7 @@ export function AddEditCommitteePage() {
           const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
           const url = isEdit ? `/api/committees/${id}` : '/api/committees';
           const method = isEdit ? 'PUT' : 'POST';
-          const res = await fetch(url, {
+          const res = await apiFetch(url, {
             method,
             headers: {
               'Content-Type': 'application/json',

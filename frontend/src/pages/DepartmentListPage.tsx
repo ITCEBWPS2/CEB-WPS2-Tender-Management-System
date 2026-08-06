@@ -6,6 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { Department } from '../utils/types';
+import { apiFetch } from '../utils/api';
 
 export function DepartmentListPage() {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ export function DepartmentListPage() {
 
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch(`/api/departments/${deleteId}`, {
+        const res = await apiFetch(`/api/departments/${deleteId}`, {
           method: 'DELETE',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
@@ -63,7 +64,7 @@ export function DepartmentListPage() {
     const load = async () => {
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch('/api/departments', {
+        const res = await apiFetch('/api/departments', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (res.ok) {

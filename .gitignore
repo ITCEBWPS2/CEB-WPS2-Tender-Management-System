@@ -73,3 +73,7 @@ dump/
 # =========================
 *.pem
 *.key
+
+
+# Temporary files
+frontend/3005_backup.txt

@@ -5,6 +5,7 @@ import { DataTable } from '../components/shared/DataTable';
 import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Bidder } from '../utils/types';
+import { apiFetch } from '../utils/api';
 export function BidderListPage() {
   const navigate = useNavigate();
   const [bidders, setBidders] = useState<Bidder[]>([]);
@@ -14,7 +15,7 @@ export function BidderListPage() {
       if (!deleteId) return;
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch(`/api/bidders/${deleteId}`, {
+        const res = await apiFetch(`/api/bidders/${deleteId}`, {
           method: 'DELETE',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
@@ -37,7 +38,7 @@ export function BidderListPage() {
     const load = async () => {
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch('/api/bidders', {
+        const res = await apiFetch('/api/bidders', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (!res.ok) throw new Error('Failed to fetch supplier');
