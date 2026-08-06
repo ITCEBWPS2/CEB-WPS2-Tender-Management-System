@@ -3,6 +3,7 @@ import { Download, FileText, FileSpreadsheet, Calendar } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
+import { apiFetch } from '../utils/api';
 
 export function ExportPage() {
   const [exportFormat, setExportFormat] = useState('excel');
@@ -23,7 +24,7 @@ export function ExportPage() {
       });
 
       const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken');
-      const res = await fetch('/api/records', {
+      const res = await apiFetch('/api/records', {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       });
 

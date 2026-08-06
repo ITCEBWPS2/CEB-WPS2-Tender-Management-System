@@ -7,6 +7,7 @@ import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { DatePicker } from '../components/ui/DatePicker';
 import { Record as TmsRecord, Department, CategoryItem, Bidder, BidOpeningCommittee } from '../utils/types';
+import { apiFetch } from '../utils/api';
 
 export function AddEditRecordPage() {
   const navigate = useNavigate();
@@ -32,10 +33,10 @@ export function AddEditRecordPage() {
         
         // 🎯 Removed unused staff API call to maximize compile efficiency
         const [depRes, catRes, bidderRes, committeeRes] = await Promise.all([
-          fetch('/api/departments', h),
-          fetch('/api/categories', h),
-          fetch('/api/bidders', h),
-          fetch('/api/committees', h)
+          apiFetch('/api/departments', h),
+          apiFetch('/api/categories', h),
+          apiFetch('/api/bidders', h),
+          apiFetch('/api/committees', h)
         ]);
 
         if (depRes.ok) setDepartments(await depRes.json());
@@ -51,7 +52,7 @@ export function AddEditRecordPage() {
       if (!isEdit) return;
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch(`/api/records/${id}`, {
+        const res = await apiFetch(`/api/records/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (res.ok) {
@@ -134,7 +135,7 @@ export function AddEditRecordPage() {
           const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
           const url = isEdit ? `/api/records/${id}` : '/api/records';
           const method = isEdit ? 'PUT' : 'POST';
-          const res = await fetch(url, {
+          const res = await apiFetch(url, {
             method,
             headers: {
               'Content-Type': 'application/json',

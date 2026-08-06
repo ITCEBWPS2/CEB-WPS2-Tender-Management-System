@@ -5,6 +5,7 @@ import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
 import { Record as TmsRecord } from '../utils/types';
+import { apiFetch } from '../utils/api';
 
 export function RecordsPage() {
   const navigate = useNavigate();
@@ -42,7 +43,7 @@ export function RecordsPage() {
 
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch(`/api/records/${deleteId}`, {
+        const res = await apiFetch(`/api/records/${deleteId}`, {
           method: 'DELETE',
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
@@ -68,7 +69,7 @@ export function RecordsPage() {
 
       // 1. Load Records
       try {
-        const res = await fetch('/api/records', { headers });
+        const res = await apiFetch('/api/records', { headers });
         if (res.ok) {
           const data = await res.json();
           const mapped = Array.isArray(data) ? data.map((r: any) => ({ ...r, id: r._id || r.id })) : [];
@@ -80,7 +81,7 @@ export function RecordsPage() {
 
       // 2. Load Categories
       try {
-        const res = await fetch('/api/categories', { headers });
+        const res = await apiFetch('/api/categories', { headers });
         if (res.ok) {
           const catData = await res.json();
           setCategories(Array.isArray(catData) ? catData : []);

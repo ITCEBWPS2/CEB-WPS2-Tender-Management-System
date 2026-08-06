@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Calendar, FileText, Users, Shield, Building2, Tag, Info, Clock, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Calendar, FileText, Users, Shield, Building2, Info, Clock, CheckCircle2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Record as TmsRecord } from '../utils/types';
+import { apiFetch } from '../utils/api';
 
 export function ViewRecordPage() {
   const navigate = useNavigate();
@@ -14,7 +15,7 @@ export function ViewRecordPage() {
     const loadRecord = async () => {
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await fetch(`/api/records/${id}`, {
+        const res = await apiFetch(`/api/records/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (res.ok) {

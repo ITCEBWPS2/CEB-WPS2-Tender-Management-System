@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Search } from 'lucide-react';
 import { mockAuditLogs } from '../utils/mockData';
 import { AuditLog } from '../utils/types';
+
 export function AuditLogPage() {
   const [logs] = useState<AuditLog[]>(mockAuditLogs);
   const [searchTerm, setSearchTerm] = useState('');
