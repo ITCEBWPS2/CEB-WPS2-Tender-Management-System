@@ -8,17 +8,22 @@ const connectDB = async () => {
   }
   try {
     await mongoose.connect(uri, {
-      useNewUrlParser: true,
-      useUnifiedTopology: true,
+      serverSelectionTimeoutMS: 2000
     });
-    console.log('MongoDB connected');
+    console.log('MongoDB connected to', uri);
   } catch (err) {
-    console.error('MongoDB connection error:', err.message);
-    process.exit(1);
+    console.log('Local MongoDB port 27017 not active. Fallback to in-memory MongoDB server...');
+    try {
+      const { MongoMemoryServer } = require('mongodb-memory-server');
+      const mongoServer = await MongoMemoryServer.create();
+      const memUri = mongoServer.getUri();
+      await mongoose.connect(memUri);
+      console.log('MongoDB connected (In-Memory) at', memUri);
+    } catch (memErr) {
+      console.error('MongoDB connection error:', memErr.message);
+      process.exit(1);
+    }
   }
 };
 
 module.exports = connectDB;
-
-
-

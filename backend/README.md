@@ -4,7 +4,12 @@ Node + Express + MongoDB backend for the Tender Management System.
 
 Setup
 
-1. Copy `.env.example` to `.env` and configure `PORT`, `MONGO_URI`, and `JWT_SECRET`.
+1. Copy `.env.example` to `.env` and configure `PORT`, `MONGO_URI`, `JWT_SECRET`, and `CORS_ORIGIN` (comma-separated origins, default: `http://localhost:5173`).
+
+Authentication & Security Notes:
+- **JWT Expiry**: JWT tokens issued on login (`POST /api/auth/login`) expire after **8 hours** (covering a standard 8-hour workday).
+- **Rate Limiting**: Authentication endpoints (`/api/auth/login` and `/api/auth/register`) are rate-limited to a maximum of **10 attempts per 15 minutes per IP**.
+- **Headers & CORS**: HTTP security headers enabled via `helmet`. CORS is restricted to allowed `CORS_ORIGIN` domains.
 2. Install dependencies:
 
 ```bash
