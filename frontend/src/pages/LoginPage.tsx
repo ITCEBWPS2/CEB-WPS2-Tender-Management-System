@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Shield } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import backgr from '../assets/backgr.png';
 import { apiFetch } from '../utils/api';
+import backgr from '../assets/backgr.png';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -47,7 +47,7 @@ export function LoginPage() {
         setError('Login failed');
       } catch (err: any) {
         console.error('Login error', err);
-        setError(err.message || 'Login failed');
+        setError(err?.message || 'Login failed');
       } finally {
         setIsLoading(false);
       }
