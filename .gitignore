@@ -2,6 +2,7 @@
 # Node.js
 # =========================
 node_modules/
+**/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -20,6 +21,8 @@ pnpm-debug.log*
 # Build Outputs
 # =========================
 dist/
+**/dist/
+frontend/dist/
 build/
 
 # React build folder (if client folder exists)
