@@ -4,7 +4,7 @@ Node + Express + MongoDB backend for the Tender Management System.
 
 Setup
 
-1. Copy `.env.example` to `.env` and set `MONGO_URI` and `JWT_SECRET`.
+1. Copy `.env.example` to `.env` and configure `PORT`, `MONGO_URI`, and `JWT_SECRET`.
 2. Install dependencies:
 
 ```bash
