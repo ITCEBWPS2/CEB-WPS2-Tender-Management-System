@@ -1,5 +1,10 @@
 const jwt = require('jsonwebtoken');
 
+if (!process.env.JWT_SECRET) {
+  console.error('JWT_SECRET not set in environment');
+  process.exit(1);
+}
+
 const protect = function (req, res, next) {
   const authHeader = req.headers.authorization;
   if (!authHeader) return res.status(401).json({ message: 'No token provided' });
@@ -9,7 +14,7 @@ const protect = function (req, res, next) {
   
   const token = parts[1];
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     req.user = decoded; 
     next();
   } catch (err) {

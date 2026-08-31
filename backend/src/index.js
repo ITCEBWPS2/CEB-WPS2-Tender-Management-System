@@ -22,5 +22,4 @@ app.use(errorHandler);
 
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`Server running on port ${PORT}`);
-  console.log(`Accessible at http://10.98.0.200:${PORT}`);
 });

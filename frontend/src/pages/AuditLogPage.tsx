@@ -1,27 +1,77 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Search } from 'lucide-react';
-import { mockAuditLogs } from '../utils/mockData';
 import { AuditLog } from '../utils/types';
+import { apiFetch } from '../utils/api';
 
 export function AuditLogPage() {
-  const [logs] = useState<AuditLog[]>(mockAuditLogs);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadLogs = async () => {
+      try {
+        setLoading(true);
+        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
+        const res = await apiFetch('/api/audits', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          const mapped: AuditLog[] = Array.isArray(data)
+            ? data.map((item: any) => {
+                let displayTime = '-';
+                if (item.createdAt) {
+                  try {
+                    displayTime = new Date(item.createdAt).toLocaleString();
+                  } catch (e) {
+                    displayTime = String(item.createdAt);
+                  }
+                } else if (item.timestamp) {
+                  displayTime = item.timestamp;
+                }
+                return {
+                  id: item._id || item.id || Math.random().toString(),
+                  user: item.user || 'System',
+                  type: item.type || 'System',
+                  message: item.message || '',
+                  timestamp: displayTime,
+                  ipAddress: item.ipAddress || '-'
+                };
+              })
+            : [];
+          setLogs(mapped);
+        }
+      } catch (err) {
+        console.error('Failed to load audit logs', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadLogs();
+  }, []);
+
   const filteredLogs = logs.filter(log => {
-    const searchMatch = log.user.toLowerCase().includes(searchTerm.toLowerCase()) || log.message.toLowerCase().includes(searchTerm.toLowerCase());
-    const typeMatch = typeFilter === 'All' || log.type === typeFilter;
+    const searchMatch = (log.user || '').toLowerCase().includes(searchTerm.toLowerCase()) || (log.message || '').toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const logTypeLower = (log.type || '').toLowerCase();
+    const filterLower = typeFilter.toLowerCase();
+    const typeMatch = typeFilter === 'All' || logTypeLower.includes(filterLower) || filterLower.includes(logTypeLower);
+    
     return searchMatch && typeMatch;
   });
+
   const getTypeColor = (type: string) => {
-    const colors: Record<string, string> = {
-      Login: 'bg-blue-100 text-blue-800',
-      Create: 'bg-green-100 text-green-800',
-      Update: 'bg-amber-100 text-amber-800',
-      Delete: 'bg-red-100 text-red-800',
-      Export: 'bg-purple-100 text-purple-800'
-    };
-    return colors[type] || 'bg-gray-100 text-gray-800';
+    const lower = (type || '').toLowerCase();
+    if (lower.includes('login')) return 'bg-blue-100 text-blue-800';
+    if (lower.includes('create') || lower.includes('register')) return 'bg-green-100 text-green-800';
+    if (lower.includes('update')) return 'bg-amber-100 text-amber-800';
+    if (lower.includes('delete')) return 'bg-red-100 text-red-800';
+    if (lower.includes('export')) return 'bg-purple-100 text-purple-800';
+    return 'bg-gray-100 text-gray-800';
   };
+
   return <div className="space-y-6">
       <div>
         <h2 className="text-2xl font-bold text-slate-900">Audit Log</h2>
@@ -70,7 +120,15 @@ export function AuditLogPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredLogs.length > 0 ? filteredLogs.map((log, idx) => <tr key={log.id} className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
+              {loading ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
+                    Loading audit logs...
+                  </td>
+                </tr>
+              ) : filteredLogs.length > 0 ? (
+                filteredLogs.map((log, idx) => (
+                  <tr key={log.id} className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
                     <td className="px-6 py-4 font-medium text-slate-900 whitespace-nowrap">
                       {log.user}
                     </td>
@@ -86,11 +144,15 @@ export function AuditLogPage() {
                     <td className="px-6 py-4 text-slate-700 whitespace-nowrap font-mono text-xs">
                       {log.ipAddress}
                     </td>
-                  </tr>) : <tr>
+                  </tr>
+                ))
+              ) : (
+                <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
                     No audit logs found.
                   </td>
-                </tr>}
+                </tr>
+              )}
             </tbody>
           </table>
         </div>

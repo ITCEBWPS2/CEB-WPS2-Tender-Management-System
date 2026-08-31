@@ -62,7 +62,7 @@ exports.login = async (req, res, next) => {
     
     
     const payload = { id: user._id, email: user.email, epfNumber: user.epfNumber, role: user.role };
-    const token = jwt.sign(payload, process.env.JWT_SECRET || 'secret', { expiresIn: '8h' });
+    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
 
     await User.updateOne({ _id: user._id }, { $set: { lastLogin: new Date() } }).catch(() => {});
     await AuditLog.create({ user: user.email, type: 'login', message: `User logged in: ${user.email}` }).catch(() => {});
