@@ -18,25 +18,31 @@ export function AddEditUserPage() {
     role: 'Admin' 
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(isEdit);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
   useEffect(() => {
     const load = async () => {
       if (!isEdit) return;
+      setIsLoading(true);
+      setFetchError(null);
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch(`/api/users/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (!res.ok) throw new Error('Failed to fetch user');
+        if (!res.ok) throw new Error('Failed to fetch user details');
         const data = await res.json();
         const normalized = {
           ...data,
           id: data._id || data.id
         };
         setFormData(normalized);
-        return;
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load user details:', err);
+        setFetchError(err.message || 'Failed to load user details');
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -101,6 +107,15 @@ export function AddEditUserPage() {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12 h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-slate-600 font-medium">Loading user details...</span>
+      </div>
+    );
+  }
+
   return <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <button onClick={() => navigate('/users')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -111,12 +126,17 @@ export function AddEditUserPage() {
             {isEdit ? 'Edit User' : 'Add New User'}
           </h2>
           <p className="text-slate-500">
-            {isEdit ? `Editing ${formData.name}` : 'Create a new system user'}
+            {isEdit ? `Editing ${formData.name || 'user'}` : 'Create a new system user'}
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+        {fetchError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+            {fetchError}
+          </div>
+        )}
         <div className="space-y-6">
           <Input label="Full Name" name="name" value={formData.name || ''} onChange={handleChange} error={errors.name} placeholder="e.g. John Doe" />
 

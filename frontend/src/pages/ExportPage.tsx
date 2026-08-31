@@ -11,9 +11,12 @@ export function ExportPage() {
   const [dateTo, setDateTo] = useState('');
   const [category, setCategory] = useState('All');
   const [status, setStatus] = useState('All');
+  const [isExporting, setIsExporting] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
 
-  // 📦 1️⃣ REAL EXPORT LOGIC: Component එක ඇතුළත නිවැරදි සීමාව (Scope) තුළට ගෙන ආවා whutto
   const handleExportRecords = async () => {
+    setIsExporting(true);
+    setExportError(null);
     try {
       console.log('Exporting system records...', {
         exportFormat,
@@ -28,7 +31,7 @@ export function ExportPage() {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       });
 
-      if (!res.ok) throw new Error('Failed to fetch records');
+      if (!res.ok) throw new Error('Failed to fetch records for export');
       
       const allRecords: any[] = await res.json();
       let filtered: any[] = Array.isArray(allRecords) ? allRecords : [];
@@ -54,6 +57,11 @@ export function ExportPage() {
 
       if (dateTo) {
         filtered = filtered.filter((r: any) => new Date(r.date) <= new Date(dateTo));
+      }
+
+      if (filtered.length === 0) {
+        setExportError('No records match the selected export criteria.');
+        return;
       }
 
       // Generate the real styled spreadsheet blob
@@ -127,8 +135,11 @@ export function ExportPage() {
         a.remove();
         window.URL.revokeObjectURL(url);
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error('Export Error:', error);
+      setExportError(error.message || 'Failed to export records');
+    } finally {
+      setIsExporting(false);
     }
   };
 
@@ -234,8 +245,14 @@ export function ExportPage() {
             <DatePicker label="To Date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
           </div>
 
+          {exportError && (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm mb-4">
+              {exportError}
+            </div>
+          )}
+
           <div className="flex justify-end pt-4 border-t border-slate-100">
-            <Button onClick={handleExportRecords} leftIcon={<Download className="w-4 h-4" />}>
+            <Button onClick={handleExportRecords} isLoading={isExporting} leftIcon={<Download className="w-4 h-4" />}>
               Download System Records
             </Button>
           </div>

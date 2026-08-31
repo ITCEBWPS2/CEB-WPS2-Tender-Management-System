@@ -13,19 +13,27 @@ export function AddEditBidderPage() {
   } = useParams();
   const isEdit = !!id;
   const [formData, setFormData] = useState<Partial<Bidder>>({});
+  const [isLoading, setIsLoading] = useState(isEdit);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   useEffect(() => {
     if (isEdit) {
       (async () => {
+        setIsLoading(true);
+        setFetchError(null);
         try {
           const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
           const res = await apiFetch(`/api/bidders/${id}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined
           });
+          if (!res.ok) throw new Error('Failed to fetch supplier details');
           const data = await res.json();
           setFormData({ ...data, id: data._id || data.id });
-        } catch (err) {
+        } catch (err: any) {
           console.error('Failed to load supplier', err);
+          setFetchError(err.message || 'Failed to load supplier details');
+        } finally {
+          setIsLoading(false);
         }
       })();
     }
@@ -71,6 +79,15 @@ export function AddEditBidderPage() {
     })();
   };
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12 h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-slate-600 font-medium">Loading supplier details...</span>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl mx-auto h-[calc(100vh-140px)] flex flex-col">
       <div className="flex-shrink-0 flex items-center gap-4 mb-6">
@@ -88,6 +105,11 @@ export function AddEditBidderPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        {fetchError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+            {fetchError}
+          </div>
+        )}
         <form id="bidderForm" onSubmit={handleSubmit} className="space-y-6 pb-24">
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 space-y-6">
             <div className="flex items-center gap-2 text-[#bd5d2a] mb-2">

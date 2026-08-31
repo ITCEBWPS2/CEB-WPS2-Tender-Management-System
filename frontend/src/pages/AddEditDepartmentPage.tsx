@@ -17,6 +17,7 @@ export function AddEditDepartmentPage() {
     status: 'Active'
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(isEdit);
 
   // Fetch and clean user role from session storage
   const getCleanRole = (): string => {
@@ -44,6 +45,7 @@ export function AddEditDepartmentPage() {
   useEffect(() => {
     if (isEdit && userRole === 'admin') {
       (async () => {
+        setIsLoading(true);
         try {
           const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
           const res = await apiFetch(`/api/departments/${id}`, {
@@ -52,9 +54,14 @@ export function AddEditDepartmentPage() {
           if (res.ok) {
             const data = await res.json();
             setFormData({ ...data, id: data._id || data.id });
+          } else {
+            setErrors({ submit: 'Failed to load unit details from server' });
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('Failed to load unit details:', err);
+          setErrors({ submit: err.message || 'Failed to load unit details' });
+        } finally {
+          setIsLoading(false);
         }
       })();
     }
@@ -103,6 +110,15 @@ export function AddEditDepartmentPage() {
       }
     })();
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12 h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-slate-600 font-medium">Loading unit details...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-3xl mx-auto h-[calc(100vh-140px)] flex flex-col">

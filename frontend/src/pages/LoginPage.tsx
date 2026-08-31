@@ -4,7 +4,7 @@ import { Lock, Mail, Shield } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import backgr from '../assets/backgr.png';
-
+import { apiFetch } from '../utils/api';
 
 export function LoginPage() {
   const navigate = useNavigate();
@@ -19,42 +19,38 @@ export function LoginPage() {
     setIsLoading(true);
     
     (async () => {
-      const endpoints = ['http://10.238.5.223:5010/api/auth/login'];
-      let lastError: any = null;
-      for (const url of endpoints) {
-        try {
-          const res = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({ message: 'Invalid credentials' }));
-            lastError = err;
-            continue; // try next endpoint
-          }
-          const data = await res.json();
-          const token = data.token;
-          if (token) {
-            sessionStorage.setItem('authToken', token);
-            sessionStorage.setItem('mock-auth-token', token);
-            sessionStorage.setItem('user', JSON.stringify(data.user || {}));
-            // Clear legacy localStorage to avoid confusion
-            localStorage.removeItem('authToken');
-            localStorage.removeItem('mock-auth-token');
-            localStorage.removeItem('user');
-            navigate('/dashboard');
-            return;
-          }
-          lastError = { message: 'Login failed' };
-        } catch (err) {
-          lastError = err;
-          // try the next endpoint
+      try {
+        const res = await apiFetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: 'Invalid credentials' }));
+          setError(err.message || 'Invalid credentials');
+          setIsLoading(false);
+          return;
         }
+        const data = await res.json();
+        const token = data.token;
+        if (token) {
+          sessionStorage.setItem('authToken', token);
+          sessionStorage.setItem('mock-auth-token', token);
+          sessionStorage.setItem('user', JSON.stringify(data.user || {}));
+          // Clear legacy localStorage to avoid confusion
+          localStorage.removeItem('authToken');
+          localStorage.removeItem('mock-auth-token');
+          localStorage.removeItem('user');
+          navigate('/dashboard');
+          return;
+        }
+        setError('Login failed');
+      } catch (err: any) {
+        console.error('Login error', err);
+        setError(err.message || 'Login failed');
+      } finally {
+        setIsLoading(false);
       }
-      console.error('Login error', lastError);
-      setError(lastError?.message || 'Login failed');
-      setIsLoading(false);
     })();
   };
 

@@ -11,6 +11,8 @@ import { apiFetch } from '../utils/api';
 export function DepartmentListPage() {
   const navigate = useNavigate();
   const [departments, setDepartments] = useState<Department[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
 
@@ -62,18 +64,22 @@ export function DepartmentListPage() {
 
   useEffect(() => {
     const load = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch('/api/departments', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (res.ok) {
-          const data = await res.json();
-          const mapped = Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id || d.id })) : [];
-          setDepartments(mapped);
-        }
-      } catch (err) {
+        if (!res.ok) throw new Error('Failed to fetch units from server');
+        const data = await res.json();
+        const mapped = Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id || d.id })) : [];
+        setDepartments(mapped);
+      } catch (err: any) {
         console.error('Failed to load departments', err);
+        setError(err.message || 'Failed to load units');
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -159,6 +165,9 @@ export function DepartmentListPage() {
         columns={columns} 
         searchKey="name" 
         searchPlaceholder="Search by unit name..." 
+        isLoading={isLoading}
+        error={error}
+        emptyMessage="No units found."
         filters={<Select className="w-32" options={[{
           value: 'All',
           label: 'All Status'

@@ -10,20 +10,25 @@ import { apiFetch } from '../utils/api';
 export function DashboardPage() {
   const [records, setRecords] = useState<TmsRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken');
         const res = await apiFetch('/api/records', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (res.ok) {
-          const data = await res.json();
-          setRecords(Array.isArray(data) ? data : []);
+        if (!res.ok) {
+          throw new Error('Failed to load dashboard records from server');
         }
-      } catch (err) {
+        const data = await res.json();
+        setRecords(Array.isArray(data) ? data : []);
+      } catch (err: any) {
         console.error('Failed to load dashboard data', err);
+        setError(err.message || 'Failed to load dashboard data');
       } finally {
         setIsLoading(false);
       }
@@ -97,6 +102,11 @@ export function DashboardPage() {
     </div>;
   }
   return <div className="space-y-6">
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+          {error}
+        </div>
+      )}
       {/* KPI Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
         <KpiCard title="Total Records" value={total} icon={FileText} color="blue" trend="+12% from last month" />

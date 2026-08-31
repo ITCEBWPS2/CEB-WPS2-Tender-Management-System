@@ -17,10 +17,12 @@ export function AddEditCategoryPage() {
     status: 'Active'
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(isEdit);
 
   useEffect(() => {
     if (isEdit) {
       (async () => {
+        setIsLoading(true);
         try {
           const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
           const res = await apiFetch(`/api/categories/${id}`, {
@@ -29,9 +31,14 @@ export function AddEditCategoryPage() {
           if (res.ok) {
             const data = await res.json();
             setFormData({ ...data, id: data._id || data.id });
+          } else {
+            setErrors({ submit: 'Failed to load category details' });
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error('Failed to load category', err);
+          setErrors({ submit: err.message || 'Failed to load category details' });
+        } finally {
+          setIsLoading(false);
         }
       })();
     }
@@ -94,6 +101,15 @@ export function AddEditCategoryPage() {
       })();
     }
   };
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12 h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-slate-600 font-medium">Loading category details...</span>
+      </div>
+    );
+  }
+
   return <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <button onClick={() => navigate('/categories')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">

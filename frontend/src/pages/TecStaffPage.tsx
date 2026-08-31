@@ -10,6 +10,8 @@ import { apiFetch } from '../utils/api';
 export function TecStaffPage() {
   const navigate = useNavigate();
   const [staff, setStaff] = useState<Staff[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const handleDelete = () => {
     (async () => {
@@ -37,21 +39,26 @@ export function TecStaffPage() {
 
   useEffect(() => {
     const load = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch('/api/staff', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (!res.ok) throw new Error('Failed to fetch staff');
+        if (!res.ok) throw new Error('Failed to fetch staff members from server');
         const data = await res.json();
         const mapped = Array.isArray(data) ? data.map((s: any) => ({
           ...s,
           id: s._id || s.id
         })) : [];
         setStaff(mapped);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load staff', err);
+        setError(err.message || 'Failed to load staff members');
         setStaff([]);
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -91,7 +98,7 @@ export function TecStaffPage() {
         </Button>
       </div>
 
-      <DataTable data={staff} columns={columns} searchKey="name" searchPlaceholder="Search staff by name..." />
+      <DataTable data={staff} columns={columns} searchKey="name" searchPlaceholder="Search staff by name..." isLoading={isLoading} error={error} emptyMessage="No staff members found." />
 
       <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Remove Staff Member" footer={<>
             <Button variant="ghost" onClick={() => setDeleteId(null)}>

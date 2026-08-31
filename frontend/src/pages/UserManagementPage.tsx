@@ -13,6 +13,8 @@ import { apiFetch } from '../utils/api';
 export function UserManagementPage() {
   const navigate = useNavigate();
   const [users, setUsers] = useState<SystemUser[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [roleFilter, setRoleFilter] = useState('All');
@@ -43,15 +45,17 @@ export function UserManagementPage() {
   
   useEffect(() => {
     const load = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch('/api/users', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (!res.ok) throw new Error('Failed to fetch users');
+        if (!res.ok) throw new Error('Failed to fetch users from server');
         const data = await res.json();
         
-        //  Dynamically map and sanitize legacy backend roles to new UI standards
+        // Dynamically map and sanitize legacy backend roles to new UI standards
         const mapped = Array.isArray(data) ? data.map((u: any) => {
           const rawRole = (u.role || '').toLowerCase().trim();
           let displayRole = u.role;
@@ -72,9 +76,12 @@ export function UserManagementPage() {
         }) : [];
         
         setUsers(mapped);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load users:', err);
+        setError(err.message || 'Failed to load users');
         setUsers([]);
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -142,7 +149,7 @@ export function UserManagementPage() {
         </Button>
       </div>
 
-      <DataTable data={filteredUsers} columns={columns} searchKey="name" searchPlaceholder="Search by name..." filters={<div className="flex gap-2">
+      <DataTable data={filteredUsers} columns={columns} searchKey="name" searchPlaceholder="Search by name..." isLoading={isLoading} error={error} emptyMessage="No users found." filters={<div className="flex gap-2">
             {/*Role options updated to CECOM and Clerk for accurate data filtering */}
             <Select className="w-44" options={[{
               value: 'All',
