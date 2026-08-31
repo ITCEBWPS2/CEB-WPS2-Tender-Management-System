@@ -94,10 +94,22 @@ export function LoginPage() {
               Sign In
             </Button>
 
-            <div className="text-center text-xs text-slate-400">
-              <p> Admin credentials:</p>
-              <p>Email: dinuwaramuthumaldeniya@gmail.com | Pass: dinuwara123</p>
-            </div>
+            {import.meta.env.DEV && (
+              <div className="pt-4 border-t border-slate-100 text-center">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="w-full text-xs text-slate-600 border-slate-200 hover:bg-slate-50"
+                  onClick={() => {
+                    setEmail('abc@gmail.com');
+                    setPassword('ABC@123');
+                  }}
+                >
+                  Fill demo admin credentials
+                </Button>
+              </div>
+            )}
           </form>
         </div>
       </div>

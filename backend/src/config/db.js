@@ -24,6 +24,24 @@ const connectDB = async () => {
       process.exit(1);
     }
   }
+
+  try {
+    const User = require('../models/User');
+    const count = await User.countDocuments();
+    if (count === 0) {
+      const bcrypt = require('bcryptjs');
+      await User.create({
+        name: 'Demo Admin',
+        email: 'abc@gmail.com',
+        epfNumber: 'EPF001',
+        password: bcrypt.hashSync('ABC@123', 10),
+        role: 'Admin'
+      });
+      console.log('Auto-seeded demo admin user: abc@gmail.com');
+    }
+  } catch (seedErr) {
+    console.error('Auto-seed check error:', seedErr.message);
+  }
 };
 
 module.exports = connectDB;

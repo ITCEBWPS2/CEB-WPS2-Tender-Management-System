@@ -19,9 +19,10 @@ async function seed() {
 
     
     const admin = await User.create({ 
-      name: 'Dinuwara Admin', 
-      email: 'dinuwaramuthumaldeniya@gmail.com', 
-      password: require('bcryptjs').hashSync('dinuwara123', 10), 
+      name: 'Demo Admin', 
+      email: 'abc@gmail.com', 
+      epfNumber: 'EPF001',
+      password: require('bcryptjs').hashSync('ABC@123', 10), 
       role: 'Admin' 
     });
     console.log('Created admin:', admin.email);

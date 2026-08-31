@@ -29,6 +29,11 @@ npm run dev
 npm run seed
 ```
 
+> **Demo Credentials (for local/demo use only, do not use in production)**:
+> - **Email**: `abc@gmail.com`
+> - **Password**: `ABC@123`
+> - **Role**: `Admin`
+
 APIs
 
 Base: `/api`
