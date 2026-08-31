@@ -20,15 +20,20 @@ export function AddEditCommitteePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [newMember, setNewMember] = useState('');
   const [staffList, setStaffList] = useState<{ name: string; id: string }[]>([]);
+  const [isLoading, setIsLoading] = useState(isEdit);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+
   useEffect(() => {
     const load = async () => {
       if (!isEdit) return;
+      setIsLoading(true);
+      setFetchError(null);
       try {
         const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
         const res = await apiFetch(`/api/committees/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (!res.ok) throw new Error('Failed to fetch');
+        if (!res.ok) throw new Error('Failed to fetch committee details');
         const data = await res.json();
         const normalized = {
           ...data,
@@ -36,8 +41,11 @@ export function AddEditCommitteePage() {
           appointedDate: data.appointedDate ? String(data.appointedDate).slice(0, 10) : ''
         };
         setFormData(normalized);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load committee from API', err);
+        setFetchError(err.message || 'Failed to load committee details');
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -134,6 +142,16 @@ export function AddEditCommitteePage() {
     }
   };
   const staffOptions = staffList.map(s => ({ value: s.name, label: s.name }));
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12 h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-slate-600 font-medium">Loading committee details...</span>
+      </div>
+    );
+  }
+
   return <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
         <button onClick={() => navigate('/bid-opening')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -144,12 +162,17 @@ export function AddEditCommitteePage() {
             {isEdit ? 'Edit Committee' : 'Add New Committee'}
           </h2>
           <p className="text-slate-500">
-            {isEdit ? `Editing ${formData.committeeNumber}` : 'Create a new bid opening committee'}
+            {isEdit ? `Editing ${formData.committeeNumber || 'committee'}` : 'Create a new bid opening committee'}
           </p>
         </div>
       </div>
 
       <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
+        {fetchError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+            {fetchError}
+          </div>
+        )}
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input label="Committee Number" name="committeeNumber" value={formData.committeeNumber || ''} onChange={handleChange} error={errors.committeeNumber} placeholder="e.g. BOC-2023-001" />

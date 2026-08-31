@@ -9,6 +9,8 @@ import { apiFetch } from '../utils/api';
 export function BidderListPage() {
   const navigate = useNavigate();
   const [bidders, setBidders] = useState<Bidder[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const handleDelete = () => {
     (async () => {
@@ -36,18 +38,23 @@ export function BidderListPage() {
 
   useEffect(() => {
     const load = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch('/api/bidders', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (!res.ok) throw new Error('Failed to fetch supplier');
+        if (!res.ok) throw new Error('Failed to fetch suppliers from server');
         const data = await res.json();
         const mapped = Array.isArray(data) ? data.map((b: any) => ({ ...b, id: b._id || b.id })) : [];
         setBidders(mapped);
-      } catch (err) {
+      } catch (err: any) {
         console.error('Failed to load supplier', err);
+        setError(err.message || 'Failed to load suppliers');
         setBidders([]);
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -91,7 +98,7 @@ export function BidderListPage() {
         </Button>
       </div>
 
-      <DataTable data={bidders} columns={columns} searchKey="name" searchPlaceholder="Search suppliers..." />
+      <DataTable data={bidders} columns={columns} searchKey="name" searchPlaceholder="Search suppliers..." isLoading={isLoading} error={error} emptyMessage="No suppliers found." />
 
       <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Remove Supplier" footer={<>
             <Button variant="ghost" onClick={() => setDeleteId(null)}>

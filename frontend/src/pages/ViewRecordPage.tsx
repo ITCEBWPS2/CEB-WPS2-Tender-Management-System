@@ -10,20 +10,25 @@ export function ViewRecordPage() {
   const { id } = useParams();
   const [record, setRecord] = useState<TmsRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadRecord = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch(`/api/records/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (res.ok) {
-          const data = await res.json();
-          setRecord({ ...data, id: data._id || data.id });
+        if (!res.ok) {
+          throw new Error('Failed to fetch tender record details');
         }
-      } catch (err) {
+        const data = await res.json();
+        setRecord({ ...data, id: data._id || data.id });
+      } catch (err: any) {
         console.error('Failed to load record', err);
+        setError(err.message || 'Failed to load tender record');
       } finally {
         setIsLoading(false);
       }
@@ -61,6 +66,16 @@ export function ViewRecordPage() {
     return (
       <div className="flex items-center justify-center h-full">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#bd5d2a]"></div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="max-w-5xl mx-auto p-8 text-center bg-white rounded-xl shadow-sm border border-red-200">
+        <h2 className="text-xl font-bold text-red-600 mb-2">Error Loading Record</h2>
+        <p className="text-slate-600 mb-4">{error}</p>
+        <Button onClick={() => navigate('/records')}>Back to Records</Button>
       </div>
     );
   }

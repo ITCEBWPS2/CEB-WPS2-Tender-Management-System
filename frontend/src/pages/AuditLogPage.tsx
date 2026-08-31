@@ -8,42 +8,46 @@ export function AuditLogPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState('All');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loadLogs = async () => {
       try {
         setLoading(true);
+        setError(null);
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
         const res = await apiFetch('/api/audits', { headers });
-        if (res.ok) {
-          const data = await res.json();
-          const mapped: AuditLog[] = Array.isArray(data)
-            ? data.map((item: any) => {
-                let displayTime = '-';
-                if (item.createdAt) {
-                  try {
-                    displayTime = new Date(item.createdAt).toLocaleString();
-                  } catch (e) {
-                    displayTime = String(item.createdAt);
-                  }
-                } else if (item.timestamp) {
-                  displayTime = item.timestamp;
-                }
-                return {
-                  id: item._id || item.id || Math.random().toString(),
-                  user: item.user || 'System',
-                  type: item.type || 'System',
-                  message: item.message || '',
-                  timestamp: displayTime,
-                  ipAddress: item.ipAddress || '-'
-                };
-              })
-            : [];
-          setLogs(mapped);
+        if (!res.ok) {
+          throw new Error('Failed to fetch audit logs from server');
         }
-      } catch (err) {
+        const data = await res.json();
+        const mapped: AuditLog[] = Array.isArray(data)
+          ? data.map((item: any) => {
+              let displayTime = '-';
+              if (item.createdAt) {
+                try {
+                  displayTime = new Date(item.createdAt).toLocaleString();
+                } catch (e) {
+                  displayTime = String(item.createdAt);
+                }
+              } else if (item.timestamp) {
+                displayTime = item.timestamp;
+              }
+              return {
+                id: item._id || item.id || Math.random().toString(),
+                user: item.user || 'System',
+                type: item.type || 'System',
+                message: item.message || '',
+                timestamp: displayTime,
+                ipAddress: item.ipAddress || '-'
+              };
+            })
+          : [];
+        setLogs(mapped);
+      } catch (err: any) {
         console.error('Failed to load audit logs', err);
+        setError(err.message || 'Failed to load audit logs');
       } finally {
         setLoading(false);
       }
@@ -124,6 +128,12 @@ export function AuditLogPage() {
                 <tr>
                   <td colSpan={5} className="px-6 py-8 text-center text-slate-500">
                     Loading audit logs...
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-8 text-center text-red-600 bg-red-50/50 font-medium">
+                    {error}
                   </td>
                 </tr>
               ) : filteredLogs.length > 0 ? (

@@ -11,6 +11,8 @@ export function RecordsPage() {
   const navigate = useNavigate();
   const [records, setRecords] = useState<TmsRecord[]>([]);
   const [categories, setCategories] = useState<any[]>([]); 
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const [categoryFilter, setCategoryFilter] = useState('All');
@@ -64,22 +66,25 @@ export function RecordsPage() {
 
   useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
       const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
       const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
-      // 1. Load Records
       try {
         const res = await apiFetch('/api/records', { headers });
-        if (res.ok) {
-          const data = await res.json();
-          const mapped = Array.isArray(data) ? data.map((r: any) => ({ ...r, id: r._id || r.id })) : [];
-          setRecords(mapped);
-        }
-      } catch (err) {
+        if (!res.ok) throw new Error('Failed to fetch records from server');
+        const data = await res.json();
+        const mapped = Array.isArray(data) ? data.map((r: any) => ({ ...r, id: r._id || r.id })) : [];
+        setRecords(mapped);
+      } catch (err: any) {
         console.error('Failed to load records', err);
+        setError(err.message || 'Failed to load tender records');
+      } finally {
+        setIsLoading(false);
       }
 
-      // 2. Load Categories
+      // Load Categories
       try {
         const res = await apiFetch('/api/categories', { headers });
         if (res.ok) {
@@ -230,7 +235,22 @@ export function RecordsPage() {
               </tr>
             </thead>
             <tbody>
-              {filteredRecords.length > 0 ? filteredRecords.map((record, idx) => <tr key={record.id} className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={15} className="px-6 py-8 text-center text-slate-500">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                      <span>Loading records...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : error ? (
+                <tr>
+                  <td colSpan={15} className="px-6 py-8 text-center text-red-600 bg-red-50/50 font-medium">
+                    {error}
+                  </td>
+                </tr>
+              ) : filteredRecords.length > 0 ? filteredRecords.map((record, idx) => <tr key={record.id} className={`border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors ${idx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
                     <td className="px-4 py-3 font-medium text-slate-900 whitespace-nowrap">{record.tenderNumber}</td>
                     <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.relevantTo}</td>
                     <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.category}</td>

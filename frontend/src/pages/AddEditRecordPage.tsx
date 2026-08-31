@@ -18,6 +18,8 @@ export function AddEditRecordPage() {
     status: 'Under Evaluation'
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [isLoading, setIsLoading] = useState(isEdit);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   
   // State variables for dropdown selections
   const [departments, setDepartments] = useState<Department[]>([]);
@@ -31,7 +33,6 @@ export function AddEditRecordPage() {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const h = { headers: token ? { Authorization: `Bearer ${token}` } : undefined };
         
-        // 🎯 Removed unused staff API call to maximize compile efficiency
         const [depRes, catRes, bidderRes, committeeRes] = await Promise.all([
           apiFetch('/api/departments', h),
           apiFetch('/api/categories', h),
@@ -50,29 +51,33 @@ export function AddEditRecordPage() {
 
     const loadRecord = async () => {
       if (!isEdit) return;
+      setIsLoading(true);
+      setFetchError(null);
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch(`/api/records/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (res.ok) {
-          const data = await res.json();
-          setFormData({
-            ...data,
-            id: data._id || data.id,
-            bidStartDate: data.bidStartDate ? String(data.bidStartDate).slice(0, 10) : '',
-            bidOpenDate: data.bidOpenDate ? String(data.bidOpenDate).slice(0, 10) : '',
-            bidClosingDate: data.bidClosingDate ? String(data.bidClosingDate).slice(0, 10) : '',
-            approvedDate: data.approvedDate ? String(data.approvedDate).slice(0, 10) : '',
-            fileSentToTecDate: data.fileSentToTecDate ? String(data.fileSentToTecDate).slice(0, 10) : '',
-            fileSentToTecSecondTime: data.fileSentToTecSecondTime ? String(data.fileSentToTecSecondTime).slice(0, 10) : '',
-            bidValidityPeriod: data.bidValidityPeriod ? String(data.bidValidityPeriod).slice(0, 10) : '',
-            serviceAgreementStartDate: data.serviceAgreementStartDate ? String(data.serviceAgreementStartDate).slice(0, 10) : '',
-            serviceAgreementEndDate: data.serviceAgreementEndDate ? String(data.serviceAgreementEndDate).slice(0, 10) : ''
-          });
-        }
-      } catch (err) {
+        if (!res.ok) throw new Error('Failed to fetch tender record details');
+        const data = await res.json();
+        setFormData({
+          ...data,
+          id: data._id || data.id,
+          bidStartDate: data.bidStartDate ? String(data.bidStartDate).slice(0, 10) : '',
+          bidOpenDate: data.bidOpenDate ? String(data.bidOpenDate).slice(0, 10) : '',
+          bidClosingDate: data.bidClosingDate ? String(data.bidClosingDate).slice(0, 10) : '',
+          approvedDate: data.approvedDate ? String(data.approvedDate).slice(0, 10) : '',
+          fileSentToTecDate: data.fileSentToTecDate ? String(data.fileSentToTecDate).slice(0, 10) : '',
+          fileSentToTecSecondTime: data.fileSentToTecSecondTime ? String(data.fileSentToTecSecondTime).slice(0, 10) : '',
+          bidValidityPeriod: data.bidValidityPeriod ? String(data.bidValidityPeriod).slice(0, 10) : '',
+          serviceAgreementStartDate: data.serviceAgreementStartDate ? String(data.serviceAgreementStartDate).slice(0, 10) : '',
+          serviceAgreementEndDate: data.serviceAgreementEndDate ? String(data.serviceAgreementEndDate).slice(0, 10) : ''
+        });
+      } catch (err: any) {
         console.error('Failed to load existing record details:', err);
+        setFetchError(err.message || 'Failed to load record details');
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -202,6 +207,15 @@ export function AddEditRecordPage() {
     { value: 'Under Evaluation', label: 'Under Evaluation' }
   ];
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center p-12 h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <span className="ml-3 text-slate-600 font-medium">Loading record details...</span>
+      </div>
+    );
+  }
+
   return <div className="max-w-5xl mx-auto h-[calc(100vh-140px)] flex flex-col">
       <div className="flex-shrink-0 flex items-center gap-4 mb-6">
         <button onClick={() => navigate('/records')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
@@ -218,6 +232,11 @@ export function AddEditRecordPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
+        {fetchError && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+            {fetchError}
+          </div>
+        )}
         <form id="recordForm" onSubmit={handleSubmit} className="space-y-6 pb-24">
           {/* Tender Information */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">

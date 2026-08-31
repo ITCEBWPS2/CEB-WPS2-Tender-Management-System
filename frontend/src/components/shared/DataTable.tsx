@@ -12,6 +12,9 @@ interface DataTableProps<T> {
   searchPlaceholder?: string;
   filters?: React.ReactNode;
   actions?: React.ReactNode;
+  isLoading?: boolean;
+  error?: string | null;
+  emptyMessage?: string;
 }
 export function DataTable<T extends {
   id: string;
@@ -21,7 +24,10 @@ export function DataTable<T extends {
   searchKey,
   searchPlaceholder = 'Search...',
   filters,
-  actions
+  actions,
+  isLoading,
+  error,
+  emptyMessage = 'No records found.'
 }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -66,18 +72,37 @@ export function DataTable<T extends {
             </tr>
           </thead>
           <tbody>
-            {paginatedData.length > 0 ? paginatedData.map((item, rowIdx) => <tr key={item.id} className={`
+            {isLoading ? (
+              <tr>
+                <td colSpan={columns.length} className="px-6 py-8 text-center text-slate-500">
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="w-4 h-4 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <span>Loading data...</span>
+                  </div>
+                </td>
+              </tr>
+            ) : error ? (
+              <tr>
+                <td colSpan={columns.length} className="px-6 py-8 text-center text-red-600 bg-red-50/50 font-medium">
+                  {error}
+                </td>
+              </tr>
+            ) : paginatedData.length > 0 ? (
+              paginatedData.map((item, rowIdx) => <tr key={item.id} className={`
                     border-b border-slate-100 last:border-0 hover:bg-slate-50 transition-colors
                     ${rowIdx % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}
                   `}>
                   {columns.map((col, colIdx) => <td key={colIdx} className="px-6 py-4 text-slate-700">
                       {col.cell ? col.cell(item) : typeof col.accessorKey === 'function' ? col.accessorKey(item) : item[col.accessorKey] as React.ReactNode}
                     </td>)}
-                </tr>) : <tr>
+                </tr>)
+            ) : (
+              <tr>
                 <td colSpan={columns.length} className="px-6 py-8 text-center text-slate-500">
-                  No records found.
+                  {emptyMessage}
                 </td>
-              </tr>}
+              </tr>
+            )}
           </tbody>
         </table>
       </div>
@@ -85,17 +110,17 @@ export function DataTable<T extends {
       {/* Pagination */}
       <div className="px-4 py-3 border-t border-slate-200 flex items-center justify-between bg-white">
         <div className="text-sm text-slate-500">
-          Showing <span className="font-medium">{startIndex + 1}</span> to{' '}
+          Showing <span className="font-medium">{filteredData.length > 0 ? startIndex + 1 : 0}</span> to{' '}
           <span className="font-medium">
             {Math.min(startIndex + itemsPerPage, filteredData.length)}
           </span>{' '}
           of <span className="font-medium">{filteredData.length}</span> results
         </div>
         <div className="flex gap-2">
-          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-2 rounded-md border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1 || isLoading || !!error} className="p-2 rounded-md border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
             <ChevronLeft className="w-4 h-4" />
           </button>
-          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0} className="p-2 rounded-md border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
+          <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages || totalPages === 0 || isLoading || !!error} className="p-2 rounded-md border border-slate-300 hover:bg-slate-50 disabled:opacity-50 disabled:cursor-not-allowed">
             <ChevronRight className="w-4 h-4" />
           </button>
         </div>

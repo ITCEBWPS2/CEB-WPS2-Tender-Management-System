@@ -11,6 +11,8 @@ import { apiFetch } from '../utils/api';
 export function CategoryListPage() {
   const navigate = useNavigate();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
 
@@ -40,22 +42,26 @@ export function CategoryListPage() {
 
   useEffect(() => {
     const load = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch('/api/categories', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (res.ok) {
-          const data = await res.json();
-          const mapped = Array.isArray(data) ? data.map((c: any) => ({ 
-            ...c, 
-            id: c._id || c.id,
-            createdDate: c.createdAt ? String(c.createdAt).slice(0, 10) : ''
-          })) : [];
-          setCategories(mapped);
-        }
-      } catch (err) {
+        if (!res.ok) throw new Error('Failed to fetch categories from server');
+        const data = await res.json();
+        const mapped = Array.isArray(data) ? data.map((c: any) => ({ 
+          ...c, 
+          id: c._id || c.id,
+          createdDate: c.createdAt ? String(c.createdAt).slice(0, 10) : ''
+        })) : [];
+        setCategories(mapped);
+      } catch (err: any) {
         console.error('Failed to load categories', err);
+        setError(err.message || 'Failed to load categories');
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -114,7 +120,7 @@ export function CategoryListPage() {
         </Button>
       </div>
 
-      <DataTable data={filteredCategories} columns={columns} searchKey="name" searchPlaceholder="Search by category name..." filters={<Select className="w-32" options={[{
+      <DataTable data={filteredCategories} columns={columns} searchKey="name" searchPlaceholder="Search by category name..." isLoading={isLoading} error={error} emptyMessage="No categories found." filters={<Select className="w-32" options={[{
       value: 'All',
       label: 'All Status'
     }, {

@@ -10,6 +10,8 @@ import { apiFetch } from '../utils/api';
 export function BidOpeningCommitteePage() {
   const navigate = useNavigate();
   const [committees, setCommittees] = useState<BidOpeningCommittee[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
   const handleDelete = () => {
@@ -38,23 +40,27 @@ export function BidOpeningCommitteePage() {
 
   useEffect(() => {
     const load = async () => {
+      setIsLoading(true);
+      setError(null);
       try {
         const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
         const res = await apiFetch('/api/committees', {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
-        if (res.ok) {
-          const data = await res.json();
-          const mapped = Array.isArray(data) ? data.map((d: any) => ({
-            ...d,
-            id: d._id || d.id,
-            appointedDate: d.appointedDate ? String(d.appointedDate).slice(0, 10) : ''
-          })) : [];
-          setCommittees(mapped);
-          return;
-        }
-      } catch (err) {
+        if (!res.ok) throw new Error('Failed to fetch committees from server');
+        const data = await res.json();
+        const mapped = Array.isArray(data) ? data.map((d: any) => ({
+          ...d,
+          id: d._id || d.id,
+          appointedDate: d.appointedDate ? String(d.appointedDate).slice(0, 10) : ''
+        })) : [];
+        setCommittees(mapped);
+      } catch (err: any) {
         console.warn('Failed to load committees from API', err);
+        setError(err.message || 'Failed to load committees');
+        setCommittees([]);
+      } finally {
+        setIsLoading(false);
       }
     };
     load();
@@ -122,7 +128,7 @@ export function BidOpeningCommitteePage() {
         </Button>
       </div>
 
-      <DataTable data={filteredCommittees} columns={columns} searchKey="committeeNumber" searchPlaceholder="Search by committee number..." filters={<Select className="w-32" options={[{
+      <DataTable data={filteredCommittees} columns={columns} searchKey="committeeNumber" searchPlaceholder="Search by committee number..." isLoading={isLoading} error={error} emptyMessage="No committees found." filters={<Select className="w-32" options={[{
       value: 'All',
       label: 'All Status'
     }, {
