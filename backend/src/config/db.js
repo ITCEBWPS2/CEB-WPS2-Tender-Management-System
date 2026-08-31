@@ -26,18 +26,14 @@ const connectDB = async () => {
   }
 
   try {
-    const User = require('../models/User');
-    const count = await User.countDocuments();
+    if (require.main && require.main.filename.endsWith('seed.js')) {
+      return;
+    }
+    const Record = require('../models/Record');
+    const count = await Record.countDocuments();
     if (count === 0) {
-      const bcrypt = require('bcryptjs');
-      await User.create({
-        name: 'Demo Admin',
-        email: 'abc@gmail.com',
-        epfNumber: 'EPF001',
-        password: bcrypt.hashSync('ABC@123', 10),
-        role: 'Admin'
-      });
-      console.log('Auto-seeded demo admin user: abc@gmail.com');
+      const { populateSeedData } = require('../seed');
+      await populateSeedData();
     }
   } catch (seedErr) {
     console.error('Auto-seed check error:', seedErr.message);
