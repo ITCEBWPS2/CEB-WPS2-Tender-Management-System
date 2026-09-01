@@ -1,5 +1,6 @@
 import { Menu, User } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 interface HeaderProps {
   onMenuClick: () => void;
@@ -7,36 +8,23 @@ interface HeaderProps {
 
 export function Header({ onMenuClick }: HeaderProps) {
   const location = useLocation();
+  const { user } = useAuth();
 
-  
-  const getUserInfo = () => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        return {
-          name: parsed.name || 'User',
-          email: parsed.email || 'user@tec.gov'
-        };
-      } catch (e) {}
-    }
-    return { name: 'Admin User', email: 'testadmin@tec.gov' }; 
-  };
-
-  const { name, email } = getUserInfo();
+  const name = user?.name || 'User';
+  const email = user?.email || 'user@tec.gov';
 
   const getPageTitle = () => {
     const path = location.pathname;
-    if (path === '/dashboard') return 'Dashboard';
-    if (path.startsWith('/records')) return 'Records Management';
-    if (path.startsWith('/categories')) return 'Category Management';
-    if (path.startsWith('/departments')) return 'Department Management';
-    if (path.startsWith('/tec-staff')) return 'TEC Staff';
-    if (path.startsWith('/bidders')) return 'Supplier Management';
-    if (path.startsWith('/bid-opening')) return 'TEC Committee';
-    if (path.startsWith('/users')) return 'User Management';
-    if (path === '/audit-log') return 'Audit Log';
-    if (path === '/export') return 'Export Data';
+    if (path.endsWith('/dashboard') || path.includes('/dashboard')) return 'Dashboard';
+    if (path.includes('/records')) return 'Records Management';
+    if (path.includes('/categories')) return 'Category Management';
+    if (path.includes('/departments')) return 'Department Management';
+    if (path.includes('/tec-staff')) return 'TEC Staff';
+    if (path.includes('/bidders')) return 'Supplier Management';
+    if (path.includes('/bid-opening')) return 'TEC Committee';
+    if (path.includes('/users')) return 'User Management';
+    if (path.includes('/audit-log')) return 'Audit Log';
+    if (path.includes('/export')) return 'Export Data';
     return 'Tender Management';
   };
 
@@ -51,7 +39,6 @@ export function Header({ onMenuClick }: HeaderProps) {
       <div className="flex items-center gap-4">
         <div className="flex items-center gap-3 pl-4 border-l border-slate-200">
           <div className="text-right hidden sm:block">
-            {/*  */}
             <p className="text-sm font-medium text-slate-900">{name}</p>
             <p className="text-xs text-slate-500">{email}</p>
           </div>

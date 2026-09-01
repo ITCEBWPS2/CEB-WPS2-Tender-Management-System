@@ -5,9 +5,11 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import backgr from '../assets/backgr.png';
 import { apiFetch } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
 
 export function LoginPage() {
   const navigate = useNavigate();
+  const { login, getRoleHomeRoute } = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -33,15 +35,11 @@ export function LoginPage() {
         }
         const data = await res.json();
         const token = data.token;
-        if (token) {
-          sessionStorage.setItem('authToken', token);
-          sessionStorage.setItem('mock-auth-token', token);
-          sessionStorage.setItem('user', JSON.stringify(data.user || {}));
-          // Clear legacy localStorage to avoid confusion
-          localStorage.removeItem('authToken');
-          localStorage.removeItem('mock-auth-token');
-          localStorage.removeItem('user');
-          navigate('/dashboard');
+        const user = data.user;
+        if (token && user) {
+          login(token, user);
+          const targetRoute = getRoleHomeRoute(user.role);
+          navigate(targetRoute);
           return;
         }
         setError('Login failed');

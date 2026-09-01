@@ -12,20 +12,32 @@ const Record = require('./models/Record');
 async function populateSeedData() {
   console.log('Seeding CEB Tender Management System data...');
   try {
-    // 1. Keep demo admin user, clear all other data
-    await User.deleteMany({ email: { $ne: 'abc@gmail.com' } });
-    let admin = await User.findOne({ email: 'abc@gmail.com' });
-    if (!admin) {
-      admin = await User.create({
-        name: 'Demo Admin',
-        email: 'abc@gmail.com',
-        epfNumber: 'EPF001',
-        password: require('bcryptjs').hashSync('ABC@123', 10),
-        role: 'Admin'
-      });
-      console.log('Created demo admin:', admin.email);
-    } else {
-      console.log('Preserved existing demo admin:', admin.email);
+    // 1. Keep demo accounts, clear all other users
+    const demoAccounts = [
+      { name: 'Demo Admin', email: 'abc@gmail.com', epfNumber: 'EPF001', password: 'ABC@123', role: 'Admin' },
+      { name: 'Demo Procurement Officer', email: 'procurement@ceb-tms.local', epfNumber: 'EPF002', password: 'Procurement@123', role: 'Procurement' },
+      { name: 'Demo CECOM Officer', email: 'cecom@ceb-tms.local', epfNumber: 'EPF003', password: 'Cecom@123', role: 'CECOM' },
+      { name: 'Demo Clerk', email: 'clerk@ceb-tms.local', epfNumber: 'EPF004', password: 'Clerk@123', role: 'Clerk' }
+    ];
+
+    const demoEmails = demoAccounts.map(a => a.email);
+    await User.deleteMany({ email: { $nin: demoEmails } });
+
+    const bcrypt = require('bcryptjs');
+    for (const acc of demoAccounts) {
+      let existingUser = await User.findOne({ email: acc.email });
+      if (!existingUser) {
+        await User.create({
+          name: acc.name,
+          email: acc.email,
+          epfNumber: acc.epfNumber,
+          password: bcrypt.hashSync(acc.password, 10),
+          role: acc.role
+        });
+        console.log(`Created demo user: ${acc.email} (${acc.role})`);
+      } else {
+        console.log(`Preserved existing demo user: ${acc.email} (${acc.role})`);
+      }
     }
 
     await Category.deleteMany();
@@ -548,7 +560,11 @@ async function populateSeedData() {
     console.log(`- Bidders: ${bidders.length}`);
     console.log(`- Committees: ${committees.length}`);
     console.log(`- Tender Records: ${records.length}`);
-    console.log('- Demo Admin: abc@gmail.com / ABC@123');
+    console.log('- Demo Accounts:');
+    console.log('  * Admin: abc@gmail.com / ABC@123');
+    console.log('  * Procurement: procurement@ceb-tms.local / Procurement@123');
+    console.log('  * CECOM: cecom@ceb-tms.local / Cecom@123');
+    console.log('  * Clerk: clerk@ceb-tms.local / Clerk@123');
     console.log('----------------------------------------------------');
   } catch (err) {
     console.error('Seeding error:', err);

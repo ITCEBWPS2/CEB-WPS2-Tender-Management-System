@@ -30,9 +30,10 @@ npm run seed
 ```
 
 > **Demo Credentials (for local/demo use only, do not use in production)**:
-> - **Email**: `abc@gmail.com`
-> - **Password**: `ABC@123`
-> - **Role**: `Admin`
+> - **Admin**: `abc@gmail.com` / `ABC@123`
+> - **Procurement**: `procurement@ceb-tms.local` / `Procurement@123`
+> - **CECOM**: `cecom@ceb-tms.local` / `Cecom@123`
+> - **Clerk**: `clerk@ceb-tms.local` / `Clerk@123`
 
 APIs
 
