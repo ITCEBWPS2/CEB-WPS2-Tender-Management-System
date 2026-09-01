@@ -1,5 +1,16 @@
 const mongoose = require('mongoose');
 
+const documentSchema = new mongoose.Schema({
+  filename: { type: String, required: true },
+  originalName: { type: String, required: true },
+  mimeType: { type: String, required: true },
+  size: { type: Number, required: true },
+  uploadedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  uploadedByName: { type: String },
+  uploadedByEmail: { type: String },
+  uploadedAt: { type: Date, default: Date.now }
+}, { timestamps: true });
+
 const recordSchema = new mongoose.Schema({
   tenderNumber: { type: String, required: true, unique: true },
   relevantTo: { type: String },
@@ -28,6 +39,7 @@ const recordSchema = new mongoose.Schema({
   performanceBondBank: { type: String },
   performanceBondRemark: { type: String },
   delay: { type: Number },
+  documents: [documentSchema]
 }, { timestamps: true });
 
 module.exports = mongoose.model('Record', recordSchema);

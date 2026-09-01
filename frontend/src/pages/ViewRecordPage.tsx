@@ -4,6 +4,7 @@ import { ArrowLeft, Calendar, FileText, Users, Shield, Building2, Info, Clock, C
 import { Button } from '../components/ui/Button';
 import { Record as TmsRecord } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { RecordDocumentsSection } from '../components/records/RecordDocumentsSection';
 
 export function ViewRecordPage() {
   const navigate = useNavigate();
@@ -11,6 +12,20 @@ export function ViewRecordPage() {
   const [record, setRecord] = useState<TmsRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const getCleanRole = (): string => {
+    const storedUser = sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const parsed = JSON.parse(storedUser);
+        if (parsed && parsed.role) return parsed.role.toLowerCase().trim();
+      } catch (e) {}
+    }
+    return 'guest';
+  };
+
+  const userRole = getCleanRole();
+  const canDeleteDocuments = ['admin', 'procurement', 'super admin'].includes(userRole);
 
   useEffect(() => {
     const loadRecord = async () => {
@@ -149,6 +164,16 @@ export function ViewRecordPage() {
                 </div>
               </div>
             </div>
+
+            {/* Documents & Scanned Attachments Section */}
+            <RecordDocumentsSection
+              recordId={record.id}
+              documents={record.documents || []}
+              canDelete={canDeleteDocuments}
+              onDocumentsChange={(updatedDocs) => {
+                setRecord(prev => prev ? { ...prev, documents: updatedDocs } : null);
+              }}
+            />
 
             <div className="bg-white rounded-2xl shadow-sm border border-slate-200 p-8">
               <SectionTitle title="Timeline & Milestone Dates" icon={Clock} />
