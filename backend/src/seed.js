@@ -9,10 +9,12 @@ const Staff = require('./models/Staff');
 const Committee = require('./models/Committee');
 const Record = require('./models/Record');
 
+const supabase = require('./config/supabase');
+
 async function populateSeedData() {
   console.log('Seeding CEB Tender Management System data...');
   try {
-    // 1. Keep demo accounts, clear all other users
+    // 1. Seed demo accounts in Supabase users table
     const demoAccounts = [
       { name: 'Demo Admin', email: 'abc@gmail.com', epfNumber: 'EPF001', password: 'ABC@123', role: 'Admin' },
       { name: 'Demo Procurement Officer', email: 'procurement@ceb-tms.local', epfNumber: 'EPF002', password: 'Procurement@123', role: 'Procurement' },
@@ -20,24 +22,49 @@ async function populateSeedData() {
       { name: 'Demo Clerk', email: 'clerk@ceb-tms.local', epfNumber: 'EPF004', password: 'Clerk@123', role: 'Clerk' }
     ];
 
-    const demoEmails = demoAccounts.map(a => a.email);
-    await User.deleteMany({ email: { $nin: demoEmails } });
-
     const bcrypt = require('bcryptjs');
     for (const acc of demoAccounts) {
-      let existingUser = await User.findOne({ email: acc.email });
+      const { data: existingUser } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', acc.email)
+        .maybeSingle();
+
+      const hash = bcrypt.hashSync(acc.password, 10);
+
       if (!existingUser) {
-        await User.create({
+        await supabase.from('users').insert([{
           name: acc.name,
           email: acc.email,
-          epfNumber: acc.epfNumber,
-          password: bcrypt.hashSync(acc.password, 10),
-          role: acc.role
-        });
+          epf_number: acc.epfNumber,
+          password: hash,
+          role: acc.role,
+          status: 'Active'
+        }]);
         console.log(`Created demo user: ${acc.email} (${acc.role})`);
       } else {
-        console.log(`Preserved existing demo user: ${acc.email} (${acc.role})`);
+        // Ensure password hash is up to date
+        await supabase.from('users').update({
+          password: hash,
+          name: acc.name,
+          epf_number: acc.epfNumber,
+          role: acc.role,
+          status: 'Active'
+        }).eq('id', existingUser.id);
+        console.log(`Updated/preserved demo user: ${acc.email} (${acc.role})`);
       }
+
+      // Also sync to Mongoose User model if connected as fallback
+      try {
+        if (mongoose.connection.readyState === 1) {
+          let mUser = await User.findOne({ email: acc.email });
+          if (!mUser) {
+            await User.create({ name: acc.name, email: acc.email, epfNumber: acc.epfNumber, password: hash, role: acc.role });
+          } else {
+            await User.updateOne({ email: acc.email }, { $set: { password: hash, role: acc.role } });
+          }
+        }
+      } catch (mErr) {}
     }
 
     await Category.deleteMany();

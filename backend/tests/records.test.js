@@ -1,5 +1,6 @@
 const request = require('supertest');
 const { setupDatabase, createTestApp, generateTestToken } = require('./setup');
+const supabase = require('../src/config/supabase');
 
 describe('Records Endpoints', () => {
   setupDatabase();
@@ -13,6 +14,14 @@ describe('Records Endpoints', () => {
     description: 'Procurement of Distribution Transformers',
     status: 'In Progress'
   };
+
+  beforeEach(async () => {
+    await supabase.from('records').delete().eq('tender_number', validRecord.tenderNumber);
+  });
+
+  afterAll(async () => {
+    await supabase.from('records').delete().eq('tender_number', validRecord.tenderNumber);
+  });
 
   describe('POST /api/records', () => {
     it('should create a record successfully when authenticated as Admin (happy path)', async () => {

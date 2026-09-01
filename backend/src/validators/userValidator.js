@@ -11,7 +11,7 @@ const validate = (schema) => (req, res, next) => {
 
 const createUserSchema = Joi.object({
   name: Joi.string().trim().required(),
-  email: Joi.string().email().trim().required(),
+  email: Joi.string().email({ tlds: false }).trim().required(),
   epfNumber: Joi.string().trim().required(),
   password: Joi.string().required(),
   role: Joi.string().allow('', null),
@@ -20,7 +20,7 @@ const createUserSchema = Joi.object({
 
 const updateUserSchema = Joi.object({
   name: Joi.string().trim().allow('', null),
-  email: Joi.string().email().trim().allow('', null),
+  email: Joi.string().email({ tlds: false }).trim().allow('', null),
   epfNumber: Joi.string().trim().allow('', null),
   password: Joi.string().allow('', null),
   role: Joi.string().allow('', null),

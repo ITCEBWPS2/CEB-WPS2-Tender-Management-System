@@ -1,19 +1,28 @@
 const request = require('supertest');
 const { setupDatabase, createTestApp, generateTestToken } = require('./setup');
+const supabase = require('../src/config/supabase');
 
 describe('Categories Endpoints', () => {
   setupDatabase();
   const app = createTestApp();
   const adminToken = generateTestToken({ role: 'Admin' });
 
+  const newCategory = {
+    name: 'High Voltage Cables',
+    description: 'Underground and aerial transmission cables',
+    status: 'Active'
+  };
+
+  beforeEach(async () => {
+    await supabase.from('categories').delete().eq('name', newCategory.name);
+  });
+
+  afterAll(async () => {
+    await supabase.from('categories').delete().eq('name', newCategory.name);
+  });
+
   describe('POST /api/categories', () => {
     it('should create a category successfully when authenticated with valid data', async () => {
-      const newCategory = {
-        name: 'High Voltage Cables',
-        description: 'Underground and aerial transmission cables',
-        status: 'Active'
-      };
-
       const res = await request(app)
         .post('/api/categories')
         .set('Authorization', `Bearer ${adminToken}`)
