@@ -3,7 +3,13 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LoginPage } from './pages/LoginPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
-import { DashboardPage } from './pages/DashboardPage';
+
+// Role-specific Dashboards
+import { AdminDashboard } from './pages/admin/AdminDashboard';
+import { ProcurementDashboard } from './pages/procurement/ProcurementDashboard';
+import { CecomDashboard } from './pages/cecom/CecomDashboard';
+import { ClerkDashboard } from './pages/clerk/ClerkDashboard';
+
 import { RecordsPage } from './pages/RecordsPage';
 import { AddEditRecordPage } from './pages/AddEditRecordPage';
 import { ViewRecordPage } from './pages/ViewRecordPage';
@@ -44,7 +50,7 @@ export function App() {
 
           {/* 1. ADMIN SHELL (/admin/*) -> Admin & Super Admin roles */}
           <Route element={<ProtectedRoute allowedRoles={['Admin', 'Super Admin']} />}>
-            <Route path="/admin/dashboard" element={<DashboardPage />} />
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
             <Route path="/admin/records" element={<RecordsPage />} />
             <Route path="/admin/records/add" element={<AddEditRecordPage />} />
             <Route path="/admin/records/edit/:id" element={<AddEditRecordPage />} />
@@ -73,7 +79,7 @@ export function App() {
 
           {/* 2. PROCUREMENT SHELL (/procurement/*) -> Procurement role */}
           <Route element={<ProtectedRoute allowedRoles={['Procurement']} />}>
-            <Route path="/procurement/dashboard" element={<DashboardPage />} />
+            <Route path="/procurement/dashboard" element={<ProcurementDashboard />} />
             <Route path="/procurement/records" element={<RecordsPage />} />
             <Route path="/procurement/records/add" element={<AddEditRecordPage />} />
             <Route path="/procurement/records/edit/:id" element={<AddEditRecordPage />} />
@@ -96,7 +102,7 @@ export function App() {
 
           {/* 3. CECOM SHELL (/cecom/*) -> CECOM role */}
           <Route element={<ProtectedRoute allowedRoles={['CECOM']} />}>
-            <Route path="/cecom/dashboard" element={<DashboardPage />} />
+            <Route path="/cecom/dashboard" element={<CecomDashboard />} />
             <Route path="/cecom/records" element={<RecordsPage />} />
             <Route path="/cecom/records/add" element={<AddEditRecordPage />} />
             <Route path="/cecom/records/edit/:id" element={<AddEditRecordPage />} />
@@ -125,7 +131,7 @@ export function App() {
 
           {/* 4. CLERK SHELL (/clerk/*) -> Clerk role */}
           <Route element={<ProtectedRoute allowedRoles={['Clerk']} />}>
-            <Route path="/clerk/dashboard" element={<DashboardPage />} />
+            <Route path="/clerk/dashboard" element={<ClerkDashboard />} />
             <Route path="/clerk/records" element={<RecordsPage />} />
             <Route path="/clerk/records/add" element={<AddEditRecordPage />} />
             <Route path="/clerk/records/edit/:id" element={<AddEditRecordPage />} />
