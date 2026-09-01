@@ -6,8 +6,22 @@ export type RemarkType = 'Under Evaluation' | 'Doc Review' | 'Negotiate or Clari
 export type UserRole = 'Super Admin' | 'Admin' | 'Clerk 1' | 'Clerk 2' | 'Clerk 3';
 export type UserStatus = 'Active' | 'Inactive';
 export type CommitteeStatus = 'Active' | 'Inactive';
+export interface RecordDocument {
+  id?: string;
+  _id?: string;
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedBy?: any;
+  uploadedByName?: string;
+  uploadedByEmail?: string;
+  uploadedAt: string | Date;
+}
+
 export interface Record {
   id: string;
+  _id?: string;
 
   // Tender Information
   tenderNumber: string;
@@ -47,6 +61,9 @@ export interface Record {
   performanceBondNumber?: string;
   performanceBondBank?: string;
   performanceBondRemark?: string;
+
+  // Documents
+  documents?: RecordDocument[];
 }
 export interface Staff {
   id: string;

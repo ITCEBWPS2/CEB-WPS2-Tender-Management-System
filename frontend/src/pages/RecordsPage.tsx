@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Edit2, Trash2, Plus, Eye } from 'lucide-react';
+import { Edit2, Trash2, Plus, Eye, Paperclip } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
@@ -275,8 +275,20 @@ export function RecordsPage() {
                     <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.delay !== undefined ? `${record.delay} days` : '-'}</td>
                     <td className="px-4 py-3 whitespace-nowrap sticky right-0 z-10 bg-white shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)] transition-colors">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => navigate(`/records/view/${record.id}`)} className="p-1 text-slate-400 hover:text-[#bd5d2a] transition-colors" title="View">
+                        <button onClick={() => navigate(`/records/view/${record.id}`)} className="p-1 text-slate-400 hover:text-[#bd5d2a] transition-colors" title="View Record">
                           <Eye className="w-4 h-4" />
+                        </button>
+                        <button 
+                          onClick={() => navigate(`/records/view/${record.id}`)} 
+                          className="p-1 text-slate-400 hover:text-[#bd5d2a] transition-colors relative" 
+                          title={`Documents (${(record.documents || []).length})`}
+                        >
+                          <Paperclip className="w-4 h-4" />
+                          {record.documents && record.documents.length > 0 && (
+                            <span className="absolute -top-1 -right-1 w-3.5 h-3.5 bg-[#bd5d2a] text-white text-[9px] font-black rounded-full flex items-center justify-center">
+                              {record.documents.length}
+                            </span>
+                          )}
                         </button>
                         <button onClick={() => navigate(`/records/edit/${record.id}`)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
                           <Edit2 className="w-4 h-4" />
