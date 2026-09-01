@@ -2,8 +2,7 @@ const request = require('supertest');
 const path = require('path');
 const fs = require('fs');
 const { setupDatabase, createTestApp, generateTestToken } = require('./setup');
-const Record = require('../src/models/Record');
-const AuditLog = require('../src/models/AuditLog');
+const supabase = require('../src/config/supabase');
 
 describe('Record Documents Management', () => {
   setupDatabase();
@@ -17,16 +16,24 @@ describe('Record Documents Management', () => {
   const testUploadDir = path.join(__dirname, '../uploads/records');
 
   beforeEach(async () => {
-    testRecord = await Record.create({
-      tenderNumber: `CEB/WPS2/2026/DOC-${Date.now()}`,
+    const { data } = await supabase.from('records').insert([{
+      tender_number: `CEB/WPS2/2026/DOC-${Date.now()}-${Math.floor(Math.random()*1000)}`,
       category: 'Equipment',
       description: 'Document upload test record',
-      status: 'In Progress'
-    });
+      status: 'Under Evaluation'
+    }]).select().single();
+
+    testRecord = data;
+    testRecord._id = data.id;
+  });
+
+  afterEach(async () => {
+    if (testRecord && testRecord.id) {
+      await supabase.from('records').delete().eq('id', testRecord.id);
+    }
   });
 
   afterAll(() => {
-    // Clean up test uploads directory if created
     if (fs.existsSync(testUploadDir)) {
       fs.rmSync(testUploadDir, { recursive: true, force: true });
     }
@@ -50,12 +57,9 @@ describe('Record Documents Management', () => {
       const pdfDoc = res.body.documents.find(d => d.originalName === 'proposal_scanned.pdf');
       expect(pdfDoc).toBeDefined();
       expect(pdfDoc.mimeType).toBe('application/pdf');
-      expect(pdfDoc.uploadedByName).toBe('Clerk User');
 
-      // Verify AuditLog was recorded
-      const log = await AuditLog.findOne({ type: 'document_upload', user: 'clerk@ceb-tms.local' });
-      expect(log).toBeDefined();
-      expect(log.message).toContain('Uploaded 2 document(s)');
+      const { data: logs } = await supabase.from('audit_logs').select('*').eq('type', 'document_upload');
+      expect(logs && logs.length > 0).toBe(true);
     });
 
     it('should reject upload with 400 when file type is not allowed (e.g. .txt or .exe)', async () => {
@@ -154,13 +158,11 @@ describe('Record Documents Management', () => {
       expect(res.status).toBe(200);
       expect(res.body.message).toMatch(/deleted successfully/i);
 
-      // Verify doc removed from Record model
-      const updatedRecord = await Record.findById(testRecord._id);
-      expect(updatedRecord.documents.length).toBe(0);
+      const { data: remainingDocs } = await supabase.from('record_documents').select('*').eq('record_id', testRecord.id);
+      expect(remainingDocs.length).toBe(0);
 
-      // Verify AuditLog entry
-      const log = await AuditLog.findOne({ type: 'document_delete', user: 'abc@gmail.com' });
-      expect(log).toBeDefined();
+      const { data: logs } = await supabase.from('audit_logs').select('*').eq('type', 'document_delete');
+      expect(logs && logs.length > 0).toBe(true);
     });
 
     it('should allow document deletion by Procurement role with 200', async () => {

@@ -1,5 +1,6 @@
 const request = require('supertest');
 const { setupDatabase, createTestApp } = require('./setup');
+const supabase = require('../src/config/supabase');
 
 describe('Auth Endpoints', () => {
   setupDatabase();
@@ -12,6 +13,16 @@ describe('Auth Endpoints', () => {
     password: 'SecurePassword123!',
     role: 'Admin'
   };
+
+  beforeEach(async () => {
+    await supabase.from('users').delete().eq('email', validUser.email);
+    await supabase.from('users').delete().eq('epf_number', validUser.epfNumber);
+  });
+
+  afterAll(async () => {
+    await supabase.from('users').delete().eq('email', validUser.email);
+    await supabase.from('users').delete().eq('epf_number', validUser.epfNumber);
+  });
 
   describe('POST /api/auth/register', () => {
     it('should register a new user successfully', async () => {
