@@ -1,5 +1,6 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, FileText, Plus, Users, UserPlus, Building2, Download, LogOut, Menu, FolderOpen, Briefcase, Gavel, Shield, FileSearch } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
   isOpen: boolean;  
@@ -8,19 +9,19 @@ interface SidebarProps {
 
 export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const navigate = useNavigate();
+  const { user, logout } = useAuth();
 
-  const getCleanRole = (): string => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        if (parsed && parsed.role) return parsed.role.toLowerCase().trim();
-      } catch (e) {}
-    }
-    return 'guest'; 
+  const userRole = (user?.role || '').toLowerCase().trim();
+
+  const getRolePrefix = (): string => {
+    if (userRole === 'super admin' || userRole === 'admin') return '/admin';
+    if (userRole === 'procurement') return '/procurement';
+    if (userRole === 'cecom') return '/cecom';
+    if (userRole === 'clerk') return '/clerk';
+    return '/admin';
   };
 
-  const userRole = getCleanRole();
+  const prefix = getRolePrefix();
 
   const hasRoleAccess = (allowed: string[] | undefined) => {
     if (!allowed) return true; 
@@ -28,127 +29,127 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   };
 
   const handleLogout = () => {
-    sessionStorage.clear();
+    logout();
     navigate('/login');
   };
 
-  // NAVIGATION CONFIGURATION - FIXED FOR CLERK SUB-ITEM VISIBILITY
+  // NAVIGATION CONFIGURATION - DYNAMIC ROLE PREFIXED PATHS
   const navItems = [{
     title: 'Dashboard',
-    path: '/dashboard',
+    path: `${prefix}/dashboard`,
     icon: <LayoutDashboard className="w-5 h-5" />
   }, {
     title: 'Records',
-    path: '/records',
+    path: `${prefix}/records`,
     icon: <FileText className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'],
+    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk'],
     subItems: [{
       title: 'All Records',
-      path: '/records',
+      path: `${prefix}/records`,
       icon: <FileText className="w-4 h-4" />
     }, {
       title: 'Add Record',
-      path: '/records/add',
+      path: `${prefix}/records/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
     }]
   }, {
     title: 'Categories',
-    path: '/categories',
+    path: `${prefix}/categories`,
     icon: <FolderOpen className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement', 'Clerk', 'CECOM'],
+    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'],
     subItems: [{
       title: 'Category List',
-      path: '/categories',
+      path: `${prefix}/categories`,
       icon: <FolderOpen className="w-4 h-4" />
     }, {
       title: 'Add Category',
-      path: '/categories/add',
+      path: `${prefix}/categories/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
     }]
   }, {
     title: 'Units',
-    path: '/departments',
+    path: `${prefix}/departments`,
     icon: <Briefcase className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement', 'Clerk', 'CECOM'], 
+    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'], 
     subItems: [{
       title: 'Unit List',
-      path: '/departments',
+      path: `${prefix}/departments`,
       icon: <Briefcase className="w-4 h-4" />
     }, {
       title: 'Add Unit',
-      path: '/departments/add',
+      path: `${prefix}/departments/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
     }]
   }, {
     title: 'TEC Staff',
-    path: '/tec-staff',
+    path: `${prefix}/tec-staff`,
     icon: <Users className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement', 'Clerk', 'CECOM'], 
+    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'], 
     subItems: [{
       title: 'Staff List',
-      path: '/tec-staff',
+      path: `${prefix}/tec-staff`,
       icon: <Users className="w-4 h-4" />
     }, {
       title: 'Add Staff',
-      path: '/tec-staff/add',
+      path: `${prefix}/tec-staff/add`,
       icon: <UserPlus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'CECOM', 'Clerk'] // ✅ Added Clerk
+      allowedRoles: ['Admin', 'Super Admin', 'CECOM', 'Clerk']
     }]
   }, {
     title: 'Bidders',
-    path: '/bidders',
+    path: `${prefix}/bidders`,
     icon: <Building2 className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement', 'Clerk', 'CECOM'], 
+    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'], 
     subItems: [{
       title: 'Supplier List',
-      path: '/bidders',
+      path: `${prefix}/bidders`,
       icon: <Building2 className="w-4 h-4" />
     }, {
       title: 'Add Supplier',
-      path: '/bidders/add',
+      path: `${prefix}/bidders/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
     }]
   }, {
     title: 'TEC Committee',
-    path: '/bid-opening',
+    path: `${prefix}/bid-opening`,
     icon: <Gavel className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'], 
+    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk'], 
     subItems: [{
       title: 'View All Committees',
-      path: '/bid-opening',
+      path: `${prefix}/bid-opening`,
       icon: <Gavel className="w-4 h-4" />
     }, {
       title: 'Add Committee',
-      path: '/bid-opening/add',
+      path: `${prefix}/bid-opening/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Procurement', 'CECOM', 'Clerk'] // ✅ Added Clerk
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
     }]
   }, {
     title: 'User Management',
-    path: '/users',
+    path: `${prefix}/users`,
     icon: <Shield className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'CECOM'], // 🔒 Strict Admin/CECOM Only
+    allowedRoles: ['Admin', 'Super Admin', 'CECOM'],
     subItems: [{
       title: 'All Users',
-      path: '/users',
+      path: `${prefix}/users`,
       icon: <Shield className="w-4 h-4" />
     }, {
       title: 'Add User',
-      path: '/users/add',
+      path: `${prefix}/users/add`,
       icon: <UserPlus className="w-4 h-4" />
     }]
   }, {
     title: 'Audit Log',
-    path: '/audit-log',
+    path: `${prefix}/audit-log`,
     icon: <FileSearch className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'CECOM'] // 🔒 Strict Admin/CECOM Only
+    allowedRoles: ['Admin', 'Super Admin', 'CECOM']
   }, {
     title: 'Export',
-    path: '/export',
+    path: `${prefix}/export`,
     icon: <Download className="w-5 h-5" />
   }];
 

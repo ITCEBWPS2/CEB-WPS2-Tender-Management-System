@@ -14,7 +14,7 @@ export function MainLayout({
 }: MainLayoutProps) {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const location = useLocation();
-  const isDashboard = location.pathname === '/' || location.pathname === '/dashboard' || location.pathname.startsWith('/dashboard');
+  const isDashboard = location.pathname.includes('/dashboard') || location.pathname === '/';
 
   return (
     <IdleTimer timeoutMinutes={15}>
