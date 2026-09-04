@@ -24,6 +24,8 @@ dist/
 **/dist/
 frontend/dist/
 build/
+.wrangler/
+**/.wrangler/
 
 # React build folder (if client folder exists)
 client/build/
