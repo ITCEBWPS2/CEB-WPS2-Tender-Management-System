@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState } from 'react';
+import { getStoredToken, clearStoredAuth } from '../utils/api';
 
 export interface User {
   id?: string;
@@ -40,15 +41,7 @@ export const getRoleHomeRoute = (role?: string): string => {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => {
-    return (
-      localStorage.getItem('authToken') ||
-      localStorage.getItem('mock-auth-token') ||
-      sessionStorage.getItem('authToken') ||
-      sessionStorage.getItem('mock-auth-token') ||
-      null
-    );
-  });
+  const [token, setToken] = useState<string | null>(() => getStoredToken());
 
   const [user, setUser] = useState<User | null>(() => {
     const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
@@ -66,28 +59,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setToken(newToken);
     setUser(newUser);
 
-    // Persist in localStorage
     localStorage.setItem('authToken', newToken);
-    localStorage.setItem('mock-auth-token', newToken);
     localStorage.setItem('user', JSON.stringify(newUser));
-
-    // Also sync to sessionStorage for backwards compatibility with existing api fetches
     sessionStorage.setItem('authToken', newToken);
-    sessionStorage.setItem('mock-auth-token', newToken);
     sessionStorage.setItem('user', JSON.stringify(newUser));
   };
 
   const logout = () => {
     setToken(null);
     setUser(null);
-
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('mock-auth-token');
-    localStorage.removeItem('user');
-
-    sessionStorage.removeItem('authToken');
-    sessionStorage.removeItem('mock-auth-token');
-    sessionStorage.removeItem('user');
+    clearStoredAuth();
     sessionStorage.clear();
   };
 

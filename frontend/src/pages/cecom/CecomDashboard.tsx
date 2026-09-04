@@ -22,12 +22,9 @@ export function CecomDashboard() {
       setIsLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken');
-        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-
         const [recordsRes, committeesRes] = await Promise.all([
-          apiFetch('/api/records', { headers }),
-          apiFetch('/api/committees', { headers })
+          apiFetch('/api/records'),
+          apiFetch('/api/committees')
         ]);
 
         if (!recordsRes.ok || !committeesRes.ok) {

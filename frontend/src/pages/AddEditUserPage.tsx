@@ -31,20 +31,13 @@ export function AddEditUserPage() {
     return '/admin/users';
   };
 
-  const getToken = () => {
-    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
-  };
-
   useEffect(() => {
     const load = async () => {
       if (!isEdit) return;
       setIsLoading(true);
       setFetchError(null);
       try {
-        const token = getToken();
-        const res = await apiFetch(`/api/users/${id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch(`/api/users/${id}`);
         if (!res.ok) throw new Error('Failed to fetch user details');
         const data = await res.json();
         const normalized = {
@@ -112,17 +105,13 @@ export function AddEditUserPage() {
     if (validate()) {
       (async () => {
         try {
-          const token = getToken();
           const url = isEdit ? `/api/users/${id}` : '/api/users';
           const method = isEdit ? 'PUT' : 'POST';
           const body = { ...formData } as any;
           Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
           const res = await apiFetch(url, {
             method,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(body)
           });
           if (!res.ok) {

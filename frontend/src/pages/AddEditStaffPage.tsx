@@ -22,10 +22,7 @@ export function AddEditStaffPage() {
       setIsLoading(true);
       setFetchError(null);
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await apiFetch(`/api/staff/${id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch(`/api/staff/${id}`);
         if (!res.ok) throw new Error('Failed to fetch staff member details');
         const data = await res.json();
         const normalized = { ...data, id: data._id || data.id };
@@ -57,17 +54,13 @@ export function AddEditStaffPage() {
     }
     (async () => {
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const url = isEdit ? `/api/staff/${id}` : '/api/staff';
         const method = isEdit ? 'PUT' : 'POST';
         const body = { ...formData } as any;
         Object.keys(body).forEach(k => body[k] === undefined && delete body[k]);
         const res = await apiFetch(url, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
         });
         if (!res.ok) {

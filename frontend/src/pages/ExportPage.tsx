@@ -14,18 +14,11 @@ export function ExportPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
-  const getToken = () => {
-    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
-  };
-
   const handleExportRecords = async () => {
     setIsExporting(true);
     setExportError(null);
     try {
-      const token = getToken();
-      const res = await apiFetch('/api/records', {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined
-      });
+      const res = await apiFetch('/api/records');
 
       if (!res.ok) throw new Error('Failed to fetch records for export');
       

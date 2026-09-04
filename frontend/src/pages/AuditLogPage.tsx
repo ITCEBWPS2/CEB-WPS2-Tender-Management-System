@@ -15,9 +15,7 @@ export function AuditLogPage() {
       try {
         setLoading(true);
         setError(null);
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
-        const res = await apiFetch('/api/audits', { headers });
+        const res = await apiFetch('/api/audits');
         if (!res.ok) {
           throw new Error('Failed to fetch audit logs from server');
         }

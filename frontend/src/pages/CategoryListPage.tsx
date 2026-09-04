@@ -20,10 +20,8 @@ export function CategoryListPage() {
     (async () => {
       if (!deleteId) return;
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch(`/api/categories/${deleteId}`, {
-          method: 'DELETE',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+          method: 'DELETE'
         });
         if (res.ok) {
           setCategories(prev => prev.filter(c => c.id !== deleteId));
@@ -45,10 +43,7 @@ export function CategoryListPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await apiFetch('/api/categories', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch('/api/categories');
         if (!res.ok) throw new Error('Failed to fetch categories from server');
         const data = await res.json();
         const mapped = Array.isArray(data) ? data.map((c: any) => ({ 

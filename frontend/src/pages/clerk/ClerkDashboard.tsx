@@ -17,10 +17,7 @@ export function ClerkDashboard() {
       setIsLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken');
-        const res = await apiFetch('/api/records', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch('/api/records');
         if (!res.ok) {
           throw new Error('Failed to load task queue records');
         }

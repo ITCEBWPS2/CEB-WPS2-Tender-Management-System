@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { clearStoredAuth } from '../../utils/api';
 
 interface IdleTimerProps {
   timeoutMinutes?: number;
@@ -16,9 +17,7 @@ export const IdleTimer: React.FC<IdleTimerProps> = ({
 
   const handleLogout = useCallback(() => {
     console.log('User idle for too long, logging out...');
-    sessionStorage.removeItem('authToken');
-    sessionStorage.removeItem('mock-auth-token');
-    sessionStorage.removeItem('user');
+    clearStoredAuth();
     navigate('/login');
   }, [navigate]);
 
@@ -41,16 +40,13 @@ export const IdleTimer: React.FC<IdleTimerProps> = ({
 
     const resetTimerOnActivity = () => resetTimer();
 
-    // Set initial timer
     resetTimer();
 
-    // Add event listeners
     events.forEach(event => {
       window.addEventListener(event, resetTimerOnActivity);
     });
 
     return () => {
-      // Cleanup
       if (timerRef.current) {
         clearTimeout(timerRef.current);
       }

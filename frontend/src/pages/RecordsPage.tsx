@@ -44,10 +44,8 @@ export function RecordsPage() {
       }
 
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch(`/api/records/${deleteId}`, {
-          method: 'DELETE',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+          method: 'DELETE'
         });
         if (res.ok) {
           setRecords(prev => prev.filter(r => r.id !== deleteId));
@@ -68,11 +66,9 @@ export function RecordsPage() {
     const loadData = async () => {
       setIsLoading(true);
       setError(null);
-      const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-      const headers = token ? { Authorization: `Bearer ${token}` } : undefined;
 
       try {
-        const res = await apiFetch('/api/records', { headers });
+        const res = await apiFetch('/api/records');
         if (!res.ok) throw new Error('Failed to fetch records from server');
         const data = await res.json();
         const mapped = Array.isArray(data) ? data.map((r: any) => ({ ...r, id: r._id || r.id })) : [];
@@ -86,7 +82,7 @@ export function RecordsPage() {
 
       // Load Categories
       try {
-        const res = await apiFetch('/api/categories', { headers });
+        const res = await apiFetch('/api/categories');
         if (res.ok) {
           const catData = await res.json();
           setCategories(Array.isArray(catData) ? catData : []);

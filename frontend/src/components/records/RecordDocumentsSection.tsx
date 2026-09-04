@@ -147,7 +147,6 @@ export function RecordDocumentsSection({
     setUploadSuccess(null);
 
     try {
-      const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
       const formData = new FormData();
       stagedFiles.forEach(file => {
         formData.append('files', file);
@@ -155,7 +154,6 @@ export function RecordDocumentsSection({
 
       const res = await apiFetch(`/api/records/${recordId}/documents`, {
         method: 'POST',
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
         body: formData
       });
 
@@ -183,10 +181,7 @@ export function RecordDocumentsSection({
     if (!docId) return;
 
     try {
-      const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-      const res = await apiFetch(`/api/records/${recordId}/documents/${docId}/download`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined
-      });
+      const res = await apiFetch(`/api/records/${recordId}/documents/${docId}/download`);
 
       if (!res.ok) {
         const err = await res.json().catch(() => ({ message: 'Download failed' }));
@@ -215,10 +210,8 @@ export function RecordDocumentsSection({
 
     setIsDeleting(true);
     try {
-      const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
       const res = await apiFetch(`/api/records/${recordId}/documents/${docId}`, {
-        method: 'DELETE',
-        headers: token ? { Authorization: `Bearer ${token}` } : undefined
+        method: 'DELETE'
       });
 
       if (!res.ok) {

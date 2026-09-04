@@ -23,10 +23,8 @@ export function UserManagementPage() {
     (async () => {
       if (!deleteId) return;
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch(`/api/users/${deleteId}`, {
-          method: 'DELETE',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+          method: 'DELETE'
         });
         if (res.ok) {
           setUsers(prev => prev.filter(u => u.id !== deleteId));
@@ -48,10 +46,7 @@ export function UserManagementPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await apiFetch('/api/users', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch('/api/users');
         if (!res.ok) throw new Error('Failed to fetch users from server');
         const data = await res.json();
         

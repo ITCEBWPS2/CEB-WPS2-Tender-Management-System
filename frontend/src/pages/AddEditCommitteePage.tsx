@@ -37,17 +37,10 @@ export function AddEditCommitteePage() {
     return '/admin/bid-opening';
   };
 
-  const getToken = () => {
-    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
-  };
-
   useEffect(() => {
     const loadStaff = async () => {
       try {
-        const token = getToken();
-        const res = await apiFetch('/api/staff', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch('/api/staff');
         if (res.ok) setStaffList(await res.json());
       } catch (err) {
         console.error('Failed to load TEC staff:', err);
@@ -59,10 +52,7 @@ export function AddEditCommitteePage() {
       setIsLoading(true);
       setFetchError(null);
       try {
-        const token = getToken();
-        const res = await apiFetch(`/api/committees/${id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch(`/api/committees/${id}`);
         if (!res.ok) throw new Error('Failed to fetch committee details');
         const data = await res.json();
         setFormData({
@@ -130,15 +120,11 @@ export function AddEditCommitteePage() {
 
     (async () => {
       try {
-        const token = getToken();
         const url = isEdit ? `/api/committees/${id}` : '/api/committees';
         const method = isEdit ? 'PUT' : 'POST';
         const res = await apiFetch(url, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         });
 

@@ -9,22 +9,9 @@ const validate = (schema) => (req, res, next) => {
   next();
 };
 
-const epfRegex = /^\d{5}$/;
-
-const registerSchema = Joi.object({
-  name: Joi.string().trim().required(),
-  email: Joi.string().email().trim().required(),
-  epfNumber: Joi.string().trim().pattern(epfRegex).messages({
-    'string.pattern.base': 'EPF Number must be exactly 5 numeric digits'
-  }).required(),
-  password: Joi.string().required(),
-  role: Joi.string().trim().allow('', null)
-});
-
 const loginSchema = Joi.object({
   email: Joi.string().trim().required(),
   password: Joi.string().required()
 });
 
-exports.validateRegister = validate(registerSchema);
 exports.validateLogin = validate(loginSchema);

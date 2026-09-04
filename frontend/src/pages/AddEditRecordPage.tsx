@@ -47,21 +47,14 @@ export function AddEditRecordPage() {
     return '/admin/records';
   };
 
-  const getToken = () => {
-    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
-  };
-
   useEffect(() => {
     const loadDropdownData = async () => {
       try {
-        const token = getToken();
-        const h = { headers: token ? { Authorization: `Bearer ${token}` } : undefined };
-        
         const [depRes, catRes, bidderRes, committeeRes] = await Promise.all([
-          apiFetch('/api/departments', h),
-          apiFetch('/api/categories', h),
-          apiFetch('/api/bidders', h),
-          apiFetch('/api/committees', h)
+          apiFetch('/api/departments'),
+          apiFetch('/api/categories'),
+          apiFetch('/api/bidders'),
+          apiFetch('/api/committees')
         ]);
 
         if (depRes.ok) setDepartments(await depRes.json());
@@ -78,10 +71,7 @@ export function AddEditRecordPage() {
       setIsLoading(true);
       setFetchError(null);
       try {
-        const token = getToken();
-        const res = await apiFetch(`/api/records/${id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch(`/api/records/${id}`);
         if (!res.ok) throw new Error('Failed to fetch tender record details');
         const data = await res.json();
         setFormData({
@@ -160,15 +150,11 @@ export function AddEditRecordPage() {
     if (validate()) {
       (async () => {
         try {
-          const token = getToken();
           const url = isEdit ? `/api/records/${id}` : '/api/records';
           const method = isEdit ? 'PUT' : 'POST';
           const res = await apiFetch(url, {
             method,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
           });
           if (!res.ok) {
@@ -202,13 +188,9 @@ export function AddEditRecordPage() {
 
     setIsSavingSupplier(true);
     try {
-      const token = getToken();
       const res = await apiFetch('/api/bidders', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {})
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(newSupplier)
       });
 

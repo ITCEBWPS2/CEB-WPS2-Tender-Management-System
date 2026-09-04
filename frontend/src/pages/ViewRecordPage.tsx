@@ -32,10 +32,7 @@ export function ViewRecordPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await apiFetch(`/api/records/${id}`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch(`/api/records/${id}`);
         if (!res.ok) {
           throw new Error('Failed to fetch tender record details');
         }
