@@ -1,7 +1,8 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { secureHeaders } from 'hono/secure-headers';
-import { jwtVerify } from 'jose';
+import { SignJWT, jwtVerify } from 'jose';
+import bcrypt from 'bcryptjs';
 import Joi from 'joi';
 
 import supabase from './config/supabase.js';
@@ -9,6 +10,7 @@ import AuditLog from './utils/auditLogger.js';
 
 const app = new Hono();
 const STORAGE_BUCKET = 'record-documents';
+const SELECT_SAFE_USER_FIELDS = 'id, name, email, epf_number, role, status, last_login, created_at, updated_at';
 
 // ---------------------------------------------------------------------------
 // Core Middleware Configuration
@@ -94,6 +96,17 @@ const authorize = (...allowedRoles) => {
   };
 };
 
+// Helper for JWT creation
+const issueToken = async (payload, jwtSecret) => {
+  const secretStr = jwtSecret || process.env.JWT_SECRET || 'super_secret_jwt_key_12345';
+  const secretKey = new TextEncoder().encode(secretStr);
+  return await new SignJWT(payload)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime('8h')
+    .sign(secretKey);
+};
+
 // 5. Global Error Handling
 app.onError((err, c) => {
   console.error('Worker error:', err);
@@ -116,7 +129,287 @@ const validateBody = (schema) => async (c, next) => {
 const dateOrString = Joi.alternatives().try(Joi.date(), Joi.string().allow('', null));
 
 // ---------------------------------------------------------------------------
-// 1. CATEGORIES RESOURCE (/api/categories)
+// 1. AUTH RESOURCE (/api/auth)
+// ---------------------------------------------------------------------------
+
+const formatUserPayload = (row) => ({
+  _id: row.id,
+  id: row.id,
+  name: row.name || '',
+  email: row.email || '',
+  epfNumber: row.epf_number || '',
+  role: row.role || 'Clerk'
+});
+
+const registerSchema = Joi.object({
+  name: Joi.string().trim().required(),
+  email: Joi.string().email({ tlds: false }).trim().required(),
+  epfNumber: Joi.string().trim().required(),
+  password: Joi.string().required(),
+  role: Joi.string().trim().allow('', null)
+});
+
+const loginSchema = Joi.object({
+  email: Joi.string().trim().required(),
+  password: Joi.string().required()
+});
+
+const auth = new Hono();
+
+auth.post('/register', validateBody(registerSchema), async (c) => {
+  const { name, email, epfNumber, password, role } = c.get('parsedBody');
+
+  const { data: existingEmail } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
+  if (existingEmail) return c.json({ message: 'Email already registered' }, 400);
+
+  const { data: existingEPF } = await supabase.from('users').select('id').eq('epf_number', epfNumber).maybeSingle();
+  if (existingEPF) return c.json({ message: 'EPF Number already registered' }, 400);
+
+  const hash = await bcrypt.hash(password, 10);
+
+  const { data: newUser, error } = await supabase
+    .from('users')
+    .insert([{
+      name,
+      email,
+      epf_number: epfNumber,
+      password: hash,
+      role: role || 'Clerk',
+      status: 'Active'
+    }])
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === '23505') return c.json({ message: 'Email or EPF Number already registered' }, 400);
+    throw error;
+  }
+
+  const payload = formatUserPayload(newUser);
+
+  await AuditLog.create({
+    user: email,
+    type: 'register',
+    message: `User registered: ${email} (EPF: ${epfNumber})`
+  }).catch(err => console.error(err));
+
+  return c.json(payload, 201);
+});
+
+auth.post('/login', validateBody(loginSchema), async (c) => {
+  const { email, password } = c.get('parsedBody');
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('*')
+    .or(`email.eq.${email},epf_number.eq.${email}`)
+    .maybeSingle();
+
+  if (error) throw error;
+
+  if (!user) {
+    return c.json({ message: 'Invalid email/EPF or password' }, 400);
+  }
+
+  const match = await bcrypt.compare(password, user.password);
+  if (!match) {
+    return c.json({ message: 'Invalid email/EPF or password' }, 401);
+  }
+
+  const payload = formatUserPayload(user);
+  const jwtSecret = c.env?.JWT_SECRET || process.env.JWT_SECRET;
+  const token = await issueToken(payload, jwtSecret);
+
+  try {
+    await supabase.from('users').update({ last_login: new Date().toISOString() }).eq('id', user.id);
+  } catch (err) {
+    console.error('Last login update error:', err);
+  }
+
+  await AuditLog.create({
+    user: user.email,
+    type: 'login',
+    message: `User logged in: ${user.email}`
+  }).catch(err => console.error(err));
+
+  return c.json({ token, user: payload });
+});
+
+auth.get('/verify', protect, async (c) => {
+  return c.json({ user: c.get('user') });
+});
+
+app.route('/api/auth', auth);
+
+// ---------------------------------------------------------------------------
+// 2. USERS RESOURCE (/api/users - Admin Management)
+// ---------------------------------------------------------------------------
+
+const formatUser = (row) => {
+  if (!row) return null;
+  return {
+    _id: row.id,
+    id: row.id,
+    name: row.name || '',
+    email: row.email || '',
+    epfNumber: row.epf_number || '',
+    role: row.role || 'Clerk',
+    status: row.status || 'Active',
+    lastLogin: row.last_login || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+};
+
+const createUserSchema = Joi.object({
+  name: Joi.string().trim().required(),
+  email: Joi.string().email({ tlds: false }).trim().required(),
+  epfNumber: Joi.string().trim().required(),
+  password: Joi.string().required(),
+  role: Joi.string().allow('', null),
+  status: Joi.string().allow('', null)
+});
+
+const updateUserSchema = Joi.object({
+  name: Joi.string().trim().allow('', null),
+  email: Joi.string().email({ tlds: false }).trim().allow('', null),
+  epfNumber: Joi.string().trim().allow('', null),
+  password: Joi.string().allow('', null),
+  role: Joi.string().allow('', null),
+  status: Joi.string().allow('', null)
+});
+
+const users = new Hono();
+
+users.get('/', protect, authorize('Admin'), async (c) => {
+  const { data, error } = await supabase
+    .from('users')
+    .select(SELECT_SAFE_USER_FIELDS)
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  return c.json((data || []).map(formatUser));
+});
+
+users.post('/', protect, authorize('Admin'), validateBody(createUserSchema), async (c) => {
+  const body = c.get('parsedBody');
+  const currentUser = c.get('user');
+
+  const { data: existingEmail } = await supabase.from('users').select('id').eq('email', body.email).maybeSingle();
+  if (existingEmail) return c.json({ message: 'Email already registered' }, 400);
+
+  const { data: existingEPF } = await supabase.from('users').select('id').eq('epf_number', body.epfNumber).maybeSingle();
+  if (existingEPF) return c.json({ message: 'EPF Number already registered' }, 400);
+
+  const hash = await bcrypt.hash(body.password, 10);
+
+  const { data: newUser, error } = await supabase
+    .from('users')
+    .insert([{
+      name: body.name,
+      email: body.email,
+      epf_number: body.epfNumber,
+      password: hash,
+      role: body.role || 'Clerk',
+      status: body.status || 'Active'
+    }])
+    .select(SELECT_SAFE_USER_FIELDS)
+    .single();
+
+  if (error) {
+    if (error.code === '23505') return c.json({ message: 'Email or EPF Number already registered' }, 400);
+    throw error;
+  }
+
+  const item = formatUser(newUser);
+
+  await AuditLog.create({
+    user: currentUser?.email,
+    type: 'create:user',
+    message: `Created user ${item.email} (EPF: ${item.epfNumber})`
+  }).catch(err => console.error(err));
+
+  return c.json(item, 201);
+});
+
+users.get('/:id', protect, authorize('Admin'), async (c) => {
+  const id = c.req.param('id');
+  const { data, error } = await supabase.from('users').select(SELECT_SAFE_USER_FIELDS).eq('id', id).maybeSingle();
+  if (error) throw error;
+  if (!data) return c.json({ message: 'Not found' }, 404);
+  return c.json(formatUser(data));
+});
+
+users.put('/:id', protect, authorize('Admin'), validateBody(updateUserSchema), async (c) => {
+  const id = c.req.param('id');
+  const body = c.get('parsedBody');
+  const currentUser = c.get('user');
+
+  if (body.epfNumber) {
+    const { data: existingEPF } = await supabase.from('users').select('id').eq('epf_number', body.epfNumber).neq('id', id).maybeSingle();
+    if (existingEPF) return c.json({ message: 'EPF Number already in use by another user' }, 400);
+  }
+
+  if (body.email) {
+    const { data: existingEmail } = await supabase.from('users').select('id').eq('email', body.email).neq('id', id).maybeSingle();
+    if (existingEmail) return c.json({ message: 'Email already in use by another user' }, 400);
+  }
+
+  const updates = {};
+  if (body.name !== undefined) updates.name = body.name;
+  if (body.email !== undefined) updates.email = body.email;
+  if (body.epfNumber !== undefined) updates.epf_number = body.epfNumber;
+  if (body.role !== undefined) updates.role = body.role;
+  if (body.status !== undefined) updates.status = body.status;
+  if (body.password) updates.password = await bcrypt.hash(body.password, 10);
+
+  const { data: updated, error } = await supabase
+    .from('users')
+    .update(updates)
+    .eq('id', id)
+    .select(SELECT_SAFE_USER_FIELDS)
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === '23505') return c.json({ message: 'Email or EPF Number already in use by another user' }, 400);
+    throw error;
+  }
+  if (!updated) return c.json({ message: 'Not found' }, 404);
+
+  const item = formatUser(updated);
+
+  await AuditLog.create({
+    user: currentUser?.email,
+    type: 'update:user',
+    message: `Updated user ${item.email}`
+  }).catch(err => console.error(err));
+
+  return c.json(item);
+});
+
+users.delete('/:id', protect, authorize('Admin'), async (c) => {
+  const id = c.req.param('id');
+  const currentUser = c.get('user');
+
+  const { data: item } = await supabase.from('users').select('id, email, epf_number').eq('id', id).maybeSingle();
+  const { error } = await supabase.from('users').delete().eq('id', id);
+  if (error) throw error;
+
+  if (item) {
+    await AuditLog.create({
+      user: currentUser?.email,
+      type: 'delete:user',
+      message: `Deleted user ${item.email}`
+    }).catch(err => console.error(err));
+  }
+
+  return c.json({ message: 'Deleted' });
+});
+
+app.route('/api/users', users);
+
+// ---------------------------------------------------------------------------
+// 3. CATEGORIES RESOURCE (/api/categories)
 // ---------------------------------------------------------------------------
 
 const formatCategory = (row) => {
@@ -223,7 +516,7 @@ categories.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
 app.route('/api/categories', categories);
 
 // ---------------------------------------------------------------------------
-// 2. DEPARTMENTS RESOURCE (/api/departments)
+// 4. DEPARTMENTS RESOURCE (/api/departments)
 // ---------------------------------------------------------------------------
 
 const formatDepartment = (row) => {
@@ -338,7 +631,7 @@ departments.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
 app.route('/api/departments', departments);
 
 // ---------------------------------------------------------------------------
-// 3. STAFF RESOURCE (/api/staff)
+// 5. STAFF RESOURCE (/api/staff)
 // ---------------------------------------------------------------------------
 
 const formatStaff = (row) => {
@@ -485,7 +778,7 @@ staff.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
 app.route('/api/staff', staff);
 
 // ---------------------------------------------------------------------------
-// 4. BIDDERS RESOURCE (/api/bidders)
+// 6. BIDDERS RESOURCE (/api/bidders)
 // ---------------------------------------------------------------------------
 
 const formatBidder = (row) => {
@@ -588,7 +881,7 @@ bidders.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
 app.route('/api/bidders', bidders);
 
 // ---------------------------------------------------------------------------
-// 5. COMMITTEES RESOURCE (/api/committees)
+// 7. COMMITTEES RESOURCE (/api/committees)
 // ---------------------------------------------------------------------------
 
 const formatCommittee = (row) => {
@@ -728,7 +1021,7 @@ committees.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
 app.route('/api/committees', committees);
 
 // ---------------------------------------------------------------------------
-// 6. RECORDS RESOURCE (/api/records) + DOCUMENT MANAGEMENT
+// 8. RECORDS RESOURCE (/api/records) + DOCUMENT MANAGEMENT
 // ---------------------------------------------------------------------------
 
 const formatRecordDocument = (doc) => {
@@ -966,7 +1259,6 @@ records.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
 
   const { data: item } = await supabase.from('records').select('*').eq('id', id).maybeSingle();
 
-  // Clean up documents in storage and record_documents table
   const docs = await getDocumentsForRecord(id);
   if (docs.length > 0) {
     const paths = docs.map(d => d.file_path).filter(Boolean);
@@ -985,11 +1277,6 @@ records.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
   return c.json({ message: 'Deleted' });
 });
 
-// ---------------------------------------------------------------------------
-// Records Document Sub-Routes (Hono multipart file upload, streaming download, delete)
-// ---------------------------------------------------------------------------
-
-// POST /api/records/:id/documents (Upload Documents)
 records.post('/:id/documents', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
@@ -1013,7 +1300,7 @@ records.post('/:id/documents', protect, authorize('Admin', 'Procurement', 'CECOM
       'image/png'
     ];
     const allowedExtensions = ['.pdf', '.docx', '.doc', '.jpg', '.jpeg', '.png'];
-    const maxSizeBytes = 10 * 1024 * 1024; // 10MB limit
+    const maxSizeBytes = 10 * 1024 * 1024;
 
     for (const file of uploadedFiles) {
       const fileName = file.name || 'unnamed_file';
@@ -1083,7 +1370,6 @@ records.post('/:id/documents', protect, authorize('Admin', 'Procurement', 'CECOM
   }, 201);
 });
 
-// GET /api/records/:id/documents (List Documents)
 records.get('/:id/documents', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
   const id = c.req.param('id');
   const { data: record } = await supabase.from('records').select('*').eq('id', id).maybeSingle();
@@ -1095,7 +1381,6 @@ records.get('/:id/documents', protect, authorize('Admin', 'Procurement', 'CECOM'
   return c.json(docs.map(formatRecordDocument));
 });
 
-// GET /api/records/:id/documents/:docId/download (Download Document Stream)
 records.get('/:id/documents/:docId/download', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
   const id = c.req.param('id');
   const docId = c.req.param('docId');
@@ -1134,7 +1419,6 @@ records.get('/:id/documents/:docId/download', protect, authorize('Admin', 'Procu
   });
 });
 
-// DELETE /api/records/:id/documents/:docId (Delete Document)
 records.delete('/:id/documents/:docId', protect, authorize('Admin', 'Procurement'), async (c) => {
   const id = c.req.param('id');
   const docId = c.req.param('docId');
@@ -1182,7 +1466,7 @@ records.delete('/:id/documents/:docId', protect, authorize('Admin', 'Procurement
 app.route('/api/records', records);
 
 // ---------------------------------------------------------------------------
-// 7. AUDIT LOGS RESOURCE (/api/audits)
+// 9. AUDIT LOGS RESOURCE (/api/audits)
 // ---------------------------------------------------------------------------
 
 const formatAuditLog = (row) => {
