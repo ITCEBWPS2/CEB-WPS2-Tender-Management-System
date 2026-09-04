@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
+import { Footer } from './Footer';
 import { IdleTimer } from '../auth/IdleTimer';
 import backgr from '../../assets/backgr.png';
 
@@ -24,7 +25,7 @@ export function MainLayout({
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           <Header onMenuClick={() => setIsSidebarOpen(true)} />
 
-          <main className="flex-1 overflow-y-auto relative">
+          <main className="flex-1 overflow-y-auto relative flex flex-col justify-between">
             <div
               className="absolute inset-0 z-0 bg-cover bg-center"
               style={{
@@ -34,10 +35,14 @@ export function MainLayout({
             />
             {!isDashboard && <div className="absolute inset-0 z-10 bg-gradient-to-b from-white/30 to-white/10 pointer-events-none" />}
 
-            <div className="relative z-20 p-4 lg:p-8">
+            <div className="relative z-20 p-4 lg:p-8 flex-1">
               <div className="max-w-7xl mx-auto animate-in fade-in duration-300">
                 {children}
               </div>
+            </div>
+
+            <div className="relative z-20">
+              <Footer />
             </div>
           </main>
         </div>
