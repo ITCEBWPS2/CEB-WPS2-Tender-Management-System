@@ -5,143 +5,163 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { DatePicker } from '../components/ui/DatePicker';
-import { BidOpeningCommittee } from '../utils/types';
+import { BidOpeningCommittee, TecStaff } from '../utils/types';
 import { apiFetch } from '../utils/api';
+
 export function AddEditCommitteePage() {
   const navigate = useNavigate();
-  const {
-    id
-  } = useParams();
+  const { id } = useParams();
   const isEdit = !!id;
+
   const [formData, setFormData] = useState<Partial<BidOpeningCommittee>>({
     status: 'Active',
     additionalMembers: []
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [newMember, setNewMember] = useState('');
-  const [staffList, setStaffList] = useState<{ name: string; id: string }[]>([]);
   const [isLoading, setIsLoading] = useState(isEdit);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
+  const [staffList, setStaffList] = useState<TecStaff[]>([]);
+  const [newMember, setNewMember] = useState('');
+
+  const getCommitteeListPath = () => {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const role = (JSON.parse(storedUser).role || '').toLowerCase().trim();
+        if (role === 'procurement') return '/procurement/bid-opening';
+        if (role === 'cecom') return '/cecom/bid-opening';
+        if (role === 'clerk') return '/clerk/bid-opening';
+      } catch (e) {}
+    }
+    return '/admin/bid-opening';
+  };
+
+  const getToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
+  };
+
   useEffect(() => {
-    const load = async () => {
+    const loadStaff = async () => {
+      try {
+        const token = getToken();
+        const res = await apiFetch('/api/staff', {
+          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+        });
+        if (res.ok) setStaffList(await res.json());
+      } catch (err) {
+        console.error('Failed to load TEC staff:', err);
+      }
+    };
+
+    const loadCommittee = async () => {
       if (!isEdit) return;
       setIsLoading(true);
       setFetchError(null);
       try {
-        const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
+        const token = getToken();
         const res = await apiFetch(`/api/committees/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
         if (!res.ok) throw new Error('Failed to fetch committee details');
         const data = await res.json();
-        const normalized = {
+        setFormData({
           ...data,
           id: data._id || data.id,
           appointedDate: data.appointedDate ? String(data.appointedDate).slice(0, 10) : ''
-        };
-        setFormData(normalized);
+        });
       } catch (err: any) {
-        console.error('Failed to load committee from API', err);
+        console.error('Failed to load committee:', err);
         setFetchError(err.message || 'Failed to load committee details');
       } finally {
         setIsLoading(false);
       }
     };
-    load();
+
+    loadStaff();
+    loadCommittee();
   }, [id, isEdit]);
 
-  useEffect(() => {
-    const loadStaff = async () => {
-      try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('token');
-        const res = await apiFetch('/api/staff', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
-        if (!res.ok) throw new Error('Failed to fetch staff');
-        const data = await res.json();
-        const mapped = Array.isArray(data) ? data.map((s: any) => ({ id: s._id || s.id, name: s.name })) : [];
-        setStaffList(mapped);
-      } catch (err) {
-        console.error('Failed to load staff list', err);
-      }
-    };
-    loadStaff();
-  }, []);
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const {
-      name,
-      value
-    } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
     if (errors[name]) {
       setErrors(prev => {
-        const newErrors = {
-          ...prev
-        };
+        const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
     }
   };
+
   const handleAddMember = () => {
-    if (newMember && !formData.additionalMembers?.includes(newMember)) {
+    if (!newMember) return;
+    const current = formData.additionalMembers || [];
+    if (!current.includes(newMember)) {
       setFormData(prev => ({
         ...prev,
-        additionalMembers: [...(prev.additionalMembers || []), newMember]
+        additionalMembers: [...current, newMember]
       }));
-      setNewMember('');
     }
+    setNewMember('');
   };
-  const handleRemoveMember = (member: string) => {
+
+  const handleRemoveMember = (memberToRemove: string) => {
     setFormData(prev => ({
       ...prev,
-      additionalMembers: prev.additionalMembers?.filter(m => m !== member) || []
+      additionalMembers: (prev.additionalMembers || []).filter(m => m !== memberToRemove)
     }));
   };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.committeeNumber) newErrors.committeeNumber = 'Committee Number is required';
-    if (!formData.member1) newErrors.member1 = 'Member 1 (Chairman) is required';
-    if (!formData.member2) newErrors.member2 = 'Member 2 is required';
-    if (!formData.member3) newErrors.member3 = 'Member 3 is required';
     if (!formData.appointedDate) newErrors.appointedDate = 'Appointed Date is required';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      (async () => {
-        try {
-          const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
-          const url = isEdit ? `/api/committees/${id}` : '/api/committees';
-          const method = isEdit ? 'PUT' : 'POST';
-          const res = await apiFetch(url, {
-            method,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            },
-            body: JSON.stringify(formData)
-          });
-          if (!res.ok) {
-            const err = await res.json().catch(() => ({ message: 'Failed to save' }));
-            alert(err.message || 'Failed to save committee');
-            return;
-          }
-          navigate('/bid-opening');
-        } catch (err) {
-          console.error(err);
-          alert('Failed to save committee');
+    if (!validate()) return;
+
+    (async () => {
+      try {
+        const token = getToken();
+        const url = isEdit ? `/api/committees/${id}` : '/api/committees';
+        const method = isEdit ? 'PUT' : 'POST';
+        const res = await apiFetch(url, {
+          method,
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify(formData)
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({ message: 'Failed to save committee' }));
+          setFetchError(err.message || 'Failed to save committee details');
+          return;
         }
-      })();
-    }
+        navigate(getCommitteeListPath());
+      } catch (err) {
+        console.error(err);
+        setFetchError('Failed to save committee details due to network error');
+      }
+    })();
   };
-  const staffOptions = staffList.map(s => ({ value: s.name, label: s.name }));
+
+  const staffOptions = [
+    { value: '', label: 'Select Staff Member' },
+    ...(staffList.map(s => ({
+      value: s.name,
+      label: `${s.name}${s.designation ? ` (${s.designation})` : ''}`
+    })))
+  ];
 
   if (isLoading) {
     return (
@@ -152,9 +172,10 @@ export function AddEditCommitteePage() {
     );
   }
 
-  return <div className="max-w-3xl mx-auto space-y-6">
+  return (
+    <div className="max-w-3xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate('/bid-opening')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(getCommitteeListPath())} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
@@ -175,7 +196,7 @@ export function AddEditCommitteePage() {
         )}
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Input label="Committee Number" name="committeeNumber" value={formData.committeeNumber || ''} onChange={handleChange} error={errors.committeeNumber} placeholder="e.g. BOC-2023-001" />
+            <Input label="Committee Number" name="committeeNumber" value={formData.committeeNumber || ''} onChange={handleChange} error={errors.committeeNumber} placeholder="e.g. TEC/2023/001" />
 
             <DatePicker label="Appointed Date" name="appointedDate" value={formData.appointedDate || ''} onChange={handleChange} error={errors.appointedDate} />
           </div>
@@ -194,49 +215,59 @@ export function AddEditCommitteePage() {
           </div>
 
           <div className="border-t border-slate-100 pt-6">
-            <h3 className="text-sm font-semibold text-slate-900 mb-4">
+            <label className="block text-sm font-semibold text-slate-900 mb-1">
               Additional Members (Optional)
-            </h3>
+            </label>
+            <p className="text-xs text-slate-500 mb-4">
+              Select and add any supplementary technical evaluation committee members.
+            </p>
 
             <div className="flex gap-2 mb-4">
               <select className="flex-1 h-10 rounded-md border border-slate-300 px-3 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none" value={newMember} onChange={e => setNewMember(e.target.value)}>
                 <option value="">Select a member to add</option>
-                {staffOptions.map(option => <option key={option.value} value={option.value}>
+                {staffOptions.filter(o => o.value !== '').map(option => (
+                  <option key={option.value} value={option.value}>
                     {option.label}
-                  </option>)}
+                  </option>
+                ))}
               </select>
               <Button type="button" onClick={handleAddMember} disabled={!newMember} leftIcon={<Plus className="w-4 h-4" />}>
                 Add
               </Button>
             </div>
 
-            {formData.additionalMembers && formData.additionalMembers.length > 0 && <div className="space-y-2">
-                  {formData.additionalMembers.map((member, index) => <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
-                      <span className="text-sm text-slate-700">{member}</span>
-                      <button type="button" onClick={() => handleRemoveMember(member)} className="p-1 text-slate-400 hover:text-red-600 transition-colors">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>)}
-                </div>}
+            {formData.additionalMembers && formData.additionalMembers.length > 0 && (
+              <div className="space-y-2">
+                {formData.additionalMembers.map((member, index) => (
+                  <div key={index} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-200">
+                    <span className="text-sm text-slate-700">{member}</span>
+                    <button type="button" onClick={() => handleRemoveMember(member)} className="p-1 text-slate-400 hover:text-red-600 transition-colors">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <Select label="Status" name="status" value={formData.status || 'Active'} onChange={handleChange} options={[{
-          value: 'Active',
-          label: 'Active'
-        }, {
-          value: 'Inactive',
-          label: 'Inactive'
-        }]} />
+            value: 'Active',
+            label: 'Active'
+          }, {
+            value: 'Inactive',
+            label: 'Inactive'
+          }]} />
         </div>
 
         <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-slate-100">
-          <Button type="button" variant="secondary" onClick={() => navigate('/bid-opening')}>
+          <Button type="button" variant="secondary" onClick={() => navigate(getCommitteeListPath())}>
             Cancel
           </Button>
           <Button type="submit" leftIcon={<Save className="w-4 h-4" />}>
-            Save Committee
+            {isEdit ? 'Save Changes' : 'Create Committee'}
           </Button>
         </div>
       </form>
-    </div>;
+    </div>
+  );
 }

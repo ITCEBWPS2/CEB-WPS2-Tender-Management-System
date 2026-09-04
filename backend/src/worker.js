@@ -144,7 +144,9 @@ const formatUserPayload = (row) => ({
 const registerSchema = Joi.object({
   name: Joi.string().trim().required(),
   email: Joi.string().email({ tlds: false }).trim().required(),
-  epfNumber: Joi.string().trim().required(),
+  epfNumber: Joi.string().trim().pattern(/^\d{5}$/).messages({
+    'string.pattern.base': 'EPF Number must be exactly 5 numeric digits'
+  }).required(),
   password: Joi.string().required(),
   role: Joi.string().trim().allow('', null)
 });
@@ -264,7 +266,9 @@ const formatUser = (row) => {
 const createUserSchema = Joi.object({
   name: Joi.string().trim().required(),
   email: Joi.string().email({ tlds: false }).trim().required(),
-  epfNumber: Joi.string().trim().required(),
+  epfNumber: Joi.string().trim().pattern(/^\d{5}$/).messages({
+    'string.pattern.base': 'EPF Number must be exactly 5 numeric digits'
+  }).required(),
   password: Joi.string().required(),
   role: Joi.string().allow('', null),
   status: Joi.string().allow('', null)
@@ -273,7 +277,9 @@ const createUserSchema = Joi.object({
 const updateUserSchema = Joi.object({
   name: Joi.string().trim().allow('', null),
   email: Joi.string().email({ tlds: false }).trim().allow('', null),
-  epfNumber: Joi.string().trim().allow('', null),
+  epfNumber: Joi.string().trim().pattern(/^\d{5}$/).messages({
+    'string.pattern.base': 'EPF Number must be exactly 5 numeric digits'
+  }).allow('', null),
   password: Joi.string().allow('', null),
   role: Joi.string().allow('', null),
   status: Joi.string().allow('', null)
@@ -799,14 +805,18 @@ const createBidderSchema = Joi.object({
   name: Joi.string().trim().required(),
   email: Joi.string().allow('', null),
   address: Joi.string().allow('', null),
-  contact: Joi.string().allow('', null)
+  contact: Joi.string().pattern(/^\+94\d{9}$/).messages({
+    'string.pattern.base': 'Contact number must be in Sri Lankan +94 format (e.g. +94771234567)'
+  }).allow('', null)
 });
 
 const updateBidderSchema = Joi.object({
   name: Joi.string().trim().allow('', null),
   email: Joi.string().allow('', null),
   address: Joi.string().allow('', null),
-  contact: Joi.string().allow('', null)
+  contact: Joi.string().pattern(/^\+94\d{9}$/).messages({
+    'string.pattern.base': 'Contact number must be in Sri Lankan +94 format (e.g. +94771234567)'
+  }).allow('', null)
 });
 
 const bidders = new Hono();

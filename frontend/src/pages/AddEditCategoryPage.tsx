@@ -19,12 +19,29 @@ export function AddEditCategoryPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(isEdit);
 
+  const getCategoryListPath = () => {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const role = (JSON.parse(storedUser).role || '').toLowerCase().trim();
+        if (role === 'procurement') return '/procurement/categories';
+        if (role === 'cecom') return '/cecom/categories';
+        if (role === 'clerk') return '/clerk/categories';
+      } catch (e) {}
+    }
+    return '/admin/categories';
+  };
+
+  const getToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
+  };
+
   useEffect(() => {
     if (isEdit) {
       (async () => {
         setIsLoading(true);
         try {
-          const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+          const token = getToken();
           const res = await apiFetch(`/api/categories/${id}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined
           });
@@ -45,19 +62,14 @@ export function AddEditCategoryPage() {
   }, [id, isEdit]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
-    const {
-      name,
-      value
-    } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
       [name]: value
     }));
     if (errors[name]) {
       setErrors(prev => {
-        const newErrors = {
-          ...prev
-        };
+        const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
@@ -77,7 +89,7 @@ export function AddEditCategoryPage() {
     if (validate()) {
       (async () => {
         try {
-          const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+          const token = getToken();
           const url = isEdit ? `/api/categories/${id}` : '/api/categories';
           const method = isEdit ? 'PUT' : 'POST';
           const res = await apiFetch(url, {
@@ -93,7 +105,7 @@ export function AddEditCategoryPage() {
             setErrors({ submit: err.message || 'Failed to save category' });
             return;
           }
-          navigate('/categories');
+          navigate(getCategoryListPath());
         } catch (err) {
           console.error(err);
           setErrors({ submit: 'Failed to save category due to a network error' });
@@ -101,6 +113,7 @@ export function AddEditCategoryPage() {
       })();
     }
   };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center p-12 h-full">
@@ -110,9 +123,10 @@ export function AddEditCategoryPage() {
     );
   }
 
-  return <div className="max-w-2xl mx-auto space-y-6">
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate('/categories')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(getCategoryListPath())} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
@@ -137,22 +151,24 @@ export function AddEditCategoryPage() {
           <Textarea label="Description" name="description" value={formData.description || ''} onChange={handleChange} error={errors.description} placeholder="Detailed description of this category..." rows={4} />
 
           <Select label="Status" name="status" value={formData.status || 'Active'} onChange={handleChange} options={[{
-          value: 'Active',
-          label: 'Active'
-        }, {
-          value: 'Inactive',
-          label: 'Inactive'
-        }]} />
+            value: 'Active',
+            label: 'Active'
+          }, {
+            value: 'Inactive',
+            label: 'Inactive'
+          }]} />
         </div>
 
         <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-slate-100">
-          <Button type="button" variant="secondary" onClick={() => navigate('/categories')}>
-            Cancel
+          <Button type="button" variant="secondary" onClick={() => navigate(getCategoryListPath())}>
+            Back to Categories
           </Button>
-          <Button type="submit" leftIcon={<Save className="w-4 h-4" />}>
-            Save Category
+          <Button type="submit" className="flex items-center gap-2">
+            <Save className="w-4 h-4" />
+            {isEdit ? 'Save Changes' : 'Create Category'}
           </Button>
         </div>
       </form>
-    </div>;
+    </div>
+  );
 }

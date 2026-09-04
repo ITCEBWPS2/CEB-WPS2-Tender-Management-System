@@ -12,7 +12,6 @@ export function AddEditUserPage() {
   const { id } = useParams();
   const isEdit = !!id;
   
-  // State configuration extending SystemUser type definition with additional fields
   const [formData, setFormData] = useState<Partial<SystemUser & { password?: string; epfNumber?: string }>>({
     status: 'Active',
     role: 'Admin' 
@@ -21,13 +20,28 @@ export function AddEditUserPage() {
   const [isLoading, setIsLoading] = useState(isEdit);
   const [fetchError, setFetchError] = useState<string | null>(null);
 
+  const getUserListPath = () => {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const role = (JSON.parse(storedUser).role || '').toLowerCase().trim();
+        if (role === 'cecom') return '/cecom/users';
+      } catch (e) {}
+    }
+    return '/admin/users';
+  };
+
+  const getToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
+  };
+
   useEffect(() => {
     const load = async () => {
       if (!isEdit) return;
       setIsLoading(true);
       setFetchError(null);
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+        const token = getToken();
         const res = await apiFetch(`/api/users/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
@@ -63,12 +77,30 @@ export function AddEditUserPage() {
     }
   };
 
-  // Form input validation rules
+  const handleEpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const digitsOnly = e.target.value.replace(/\D/g, '').slice(0, 5);
+    setFormData(prev => ({
+      ...prev,
+      epfNumber: digitsOnly
+    }));
+    if (errors.epfNumber) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors.epfNumber;
+        return newErrors;
+      });
+    }
+  };
+
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.name) newErrors.name = 'Name is required';
     if (!formData.email) newErrors.email = 'Email is required';
-    if (!formData.epfNumber) newErrors.epfNumber = 'EPF Number is required'; 
+    if (!formData.epfNumber) {
+      newErrors.epfNumber = 'EPF Number is required';
+    } else if (!/^\d{5}$/.test(formData.epfNumber)) {
+      newErrors.epfNumber = 'EPF Number must be exactly 5 numeric digits';
+    }
     if (!formData.role) newErrors.role = 'Role is required';
     if (!isEdit && !formData.password) newErrors.password = 'Password is required';
     setErrors(newErrors);
@@ -80,7 +112,7 @@ export function AddEditUserPage() {
     if (validate()) {
       (async () => {
         try {
-          const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+          const token = getToken();
           const url = isEdit ? `/api/users/${id}` : '/api/users';
           const method = isEdit ? 'PUT' : 'POST';
           const body = { ...formData } as any;
@@ -95,13 +127,13 @@ export function AddEditUserPage() {
           });
           if (!res.ok) {
             const err = await res.json().catch(() => ({ message: 'Failed to save user' }));
-            alert(err.message || 'Error: Failed to save user records.');
+            setFetchError(err.message || 'Error: Failed to save user records.');
             return;
           }
-          navigate('/users');
+          navigate(getUserListPath());
         } catch (err) {
           console.error(err);
-          alert('Error: Failed to save user records.');
+          setFetchError('Error: Failed to save user records due to network error.');
         }
       })();
     }
@@ -116,17 +148,18 @@ export function AddEditUserPage() {
     );
   }
 
-  return <div className="max-w-2xl mx-auto space-y-6">
+  return (
+    <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate('/users')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(getUserListPath())} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
           <h2 className="text-2xl font-bold text-slate-900">
-            {isEdit ? 'Edit User' : 'Add New User'}
+            {isEdit ? 'Edit System User' : 'Add New System User'}
           </h2>
           <p className="text-slate-500">
-            {isEdit ? `Editing ${formData.name || 'user'}` : 'Create a new system user'}
+            {isEdit ? `Editing ${formData.name}` : 'Provision a new system user profile'}
           </p>
         </div>
       </div>
@@ -143,16 +176,16 @@ export function AddEditUserPage() {
           <Input label="Email Address" name="email" type="email" value={formData.email || ''} onChange={handleChange} error={errors.email} placeholder="e.g. john.doe@tec.gov" />
 
           <Input 
-            label="EPF Number" 
+            label="EPF Number (5 digits)" 
             name="epfNumber" 
             type="text" 
+            maxLength={5}
             value={formData.epfNumber || ''} 
-            onChange={handleChange} 
+            onChange={handleEpfChange} 
             error={errors.epfNumber} 
             placeholder="e.g. 12345" 
           />
 
-          {/* Roles updated dynamically to CECOM and Clerk as per technical specifications */}
           <Select label="Role" name="role" value={formData.role || 'Admin'} onChange={handleChange} error={errors.role} options={[{
             value: 'Admin',
             label: 'Admin'
@@ -179,13 +212,14 @@ export function AddEditUserPage() {
         </div>
 
         <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-slate-100">
-          <Button type="button" variant="secondary" onClick={() => navigate('/users')}>
+          <Button type="button" variant="secondary" onClick={() => navigate(getUserListPath())}>
             Cancel
           </Button>
           <Button type="submit" leftIcon={<Save className="w-4 h-4" />}>
-            Save User
+            {isEdit ? 'Save Changes' : 'Create User'}
           </Button>
         </div>
       </form>
-    </div>;
+    </div>
+  );
 }

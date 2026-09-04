@@ -14,19 +14,15 @@ export function ExportPage() {
   const [isExporting, setIsExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
+  const getToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
+  };
+
   const handleExportRecords = async () => {
     setIsExporting(true);
     setExportError(null);
     try {
-      console.log('Exporting system records...', {
-        exportFormat,
-        dateFrom,
-        dateTo,
-        category,
-        status
-      });
-
-      const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken');
+      const token = getToken();
       const res = await apiFetch('/api/records', {
         headers: token ? { Authorization: `Bearer ${token}` } : undefined
       });
@@ -36,11 +32,12 @@ export function ExportPage() {
       const allRecords: any[] = await res.json();
       let filtered: any[] = Array.isArray(allRecords) ? allRecords : [];
 
-      // Frontend filtering engines
+      // Category filter
       if (category !== 'All') {
         filtered = filtered.filter((r: any) => (r.category || '').toString().toLowerCase() === category.toLowerCase());
       }
 
+      // Status filter
       if (status !== 'All') {
         filtered = filtered.filter((r: any) => {
           const s = (r.status || '').toString().toLowerCase();
@@ -51,12 +48,23 @@ export function ExportPage() {
         });
       }
 
-      if (dateFrom) {
-        filtered = filtered.filter((r: any) => new Date(r.date) >= new Date(dateFrom));
+      // Optional Date Range filtering (only filter if date is explicitly selected)
+      if (dateFrom && dateFrom.trim()) {
+        const fromTs = new Date(dateFrom).getTime();
+        filtered = filtered.filter((r: any) => {
+          const recDateStr = r.bidStartDate || r.bidOpenDate || r.createdAt || r.date;
+          if (!recDateStr) return true; // keep if record date is not set
+          return new Date(recDateStr).getTime() >= fromTs;
+        });
       }
 
-      if (dateTo) {
-        filtered = filtered.filter((r: any) => new Date(r.date) <= new Date(dateTo));
+      if (dateTo && dateTo.trim()) {
+        const toTs = new Date(`${dateTo}T23:59:59`).getTime();
+        filtered = filtered.filter((r: any) => {
+          const recDateStr = r.bidStartDate || r.bidOpenDate || r.createdAt || r.date;
+          if (!recDateStr) return true; // keep if record date is not set
+          return new Date(recDateStr).getTime() <= toTs;
+        });
       }
 
       if (filtered.length === 0) {
@@ -64,38 +72,42 @@ export function ExportPage() {
         return;
       }
 
-      // Generate the real styled spreadsheet blob
+      const timestamp = new Date().toISOString().split('T')[0];
+
       if (exportFormat === 'excel') {
         const excelHtml = `
           <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
           <head>
+            <meta charset="utf-8">
             <style>
-              th { background-color: #bd5d2a; color: white; font-weight: bold; padding: 8px; }
-              td { padding: 6px; border: 1px solid #cbd5e1; }
+              th { background-color: #0284c7; color: white; font-weight: bold; padding: 10px; text-align: left; }
+              td { padding: 8px; border: 1px solid #cbd5e1; vertical-align: top; }
             </style>
           </head>
           <body>
             <table border="1">
               <thead>
                 <tr>
-                  <th>Tender ID</th>
-                  <th>Title</th>
+                  <th>Tender Number</th>
+                  <th>Description</th>
+                  <th>Relevant Unit</th>
                   <th>Category</th>
                   <th>Status</th>
-                  <th>Date</th>
-                  <th>Supplier</th>
+                  <th>Bid Start Date</th>
+                  <th>Awarded To</th>
                   <th>Delay (Days)</th>
                 </tr>
               </thead>
               <tbody>
                 ${filtered.map((r: any) => `
                   <tr>
-                    <td>${r.id || ''}</td>
-                    <td>${r.title || ''}</td>
+                    <td>${r.tenderNumber || r.id || ''}</td>
+                    <td>${(r.description || r.title || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</td>
+                    <td>${r.relevantTo || ''}</td>
                     <td>${r.category || ''}</td>
                     <td>${r.status || ''}</td>
-                    <td>${r.date || ''}</td>
-                    <td>${r.supplier || ''}</td>
+                    <td>${r.bidStartDate ? String(r.bidStartDate).slice(0, 10) : ''}</td>
+                    <td>${r.awardedTo || r.supplier || ''}</td>
                     <td>${r.delay || 0}</td>
                   </tr>
                 `).join('')}
@@ -104,36 +116,37 @@ export function ExportPage() {
           </body>
           </html>
         `;
-        const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
+        const blob = new Blob([excelHtml], { type: 'application/vnd.ms-excel;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Tender_Records_${new Date().toISOString().split('T')[0]}.xls`;
+        a.download = `Tender_Records_${timestamp}.xls`;
         document.body.appendChild(a);
         a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       } else {
-        const headers = ['Tender ID', 'Title', 'Category', 'Status', 'Date', 'Supplier', 'Delay (Days)'];
+        const headers = ['Tender Number', 'Description', 'Relevant Unit', 'Category', 'Status', 'Bid Start Date', 'Awarded To', 'Delay (Days)'];
         const csvRows = filtered.map((r: any) => [
-          r.id || '',
-          `"${(r.title || '').replace(/"/g, '""')}"`,
-          r.category || '',
-          r.status || '',
-          r.date || '',
-          `"${(r.supplier || '').replace(/"/g, '""')}"`,
+          `"${(r.tenderNumber || r.id || '').replace(/"/g, '""')}"`,
+          `"${(r.description || r.title || '').replace(/"/g, '""')}"`,
+          `"${(r.relevantTo || '').replace(/"/g, '""')}"`,
+          `"${(r.category || '').replace(/"/g, '""')}"`,
+          `"${(r.status || '').replace(/"/g, '""')}"`,
+          `"${r.bidStartDate ? String(r.bidStartDate).slice(0, 10) : ''}"`,
+          `"${(r.awardedTo || r.supplier || '').replace(/"/g, '""')}"`,
           r.delay || 0
         ]);
-        const csvContent = [headers.join(','), ...csvRows.map(row => row.join(','))].join('\n');
+        const csvContent = '\uFEFF' + [headers.join(','), ...csvRows.map(row => row.join(','))].join('\n');
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-        const url = window.URL.createObjectURL(blob);
+        const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = `Tender_Records_${new Date().toISOString().split('T')[0]}.csv`;
+        a.download = `Tender_Records_${timestamp}.csv`;
         document.body.appendChild(a);
         a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
       }
     } catch (error: any) {
       console.error('Export Error:', error);
@@ -143,28 +156,26 @@ export function ExportPage() {
     }
   };
 
-  // 📝 2️⃣ Static document template downloads
   const handleDownloadTechnicalGood = () => {
-    console.log('Downloading Technical Evaluation Good document...');
     const a = document.createElement('a');
     a.href = '/templates/Technical_Evaluation_Good.docx';
     a.download = 'Technical_Evaluation_Good.docx';
     document.body.appendChild(a);
     a.click();
-    a.remove();
+    document.body.removeChild(a);
   };
 
   const handleDownloadTechnicalService = () => {
-    console.log('Downloading Final Technical Evaluation Service document...');
     const a = document.createElement('a');
     a.href = '/templates/Final_Technical_Evaluation_Service.docx';
     a.download = 'Final_Technical_Evaluation_Service.docx';
     document.body.appendChild(a);
     a.click();
-    a.remove();
+    document.body.removeChild(a);
   };
 
-  return <div className="space-y-6">
+  return (
+    <div className="space-y-6">
       {/* Download System Records */}
       <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
         <div className="flex items-start gap-4 mb-6">
@@ -176,57 +187,49 @@ export function ExportPage() {
               Download System Records
             </h3>
             <p className="text-sm text-slate-500">
-              Export all tender records with customizable filters and date ranges
+              Export system records with optional filters and date ranges
             </p>
           </div>
         </div>
 
         <div className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Select label="Export Format" value={exportFormat} onChange={e => setExportFormat(e.target.value)} options={[{
-            value: 'excel',
-            label: 'Excel (.xls)'
-          }, {
-            value: 'csv',
-            label: 'CSV (.csv)'
-          }]} />
+            <Select
+              label="Export Format"
+              value={exportFormat}
+              onChange={e => setExportFormat(e.target.value)}
+              options={[
+                { value: 'excel', label: 'Excel (.xls)' },
+                { value: 'csv', label: 'CSV (.csv)' }
+              ]}
+            />
 
-            <Select label="Category Filter" value={category} onChange={e => setCategory(e.target.value)} options={[{
-            value: 'All',
-            label: 'All Categories'
-          }, {
-            value: 'Goods',
-            label: 'Goods'
-          }, {
-            value: 'Services',
-            label: 'Services'
-          }, {
-            value: 'Works',
-            label: 'Works'
-          }, {
-            value: 'Consultancy',
-            label: 'Consultancy'
-          }]} />
+            <Select
+              label="Category Filter"
+              value={category}
+              onChange={e => setCategory(e.target.value)}
+              options={[
+                { value: 'All', label: 'All Categories' },
+                { value: 'Goods', label: 'Goods' },
+                { value: 'Services', label: 'Services' },
+                { value: 'Works', label: 'Works' },
+                { value: 'Consultancy', label: 'Consultancy' }
+              ]}
+            />
 
-            <Select label="Status Filter" value={status} onChange={e => setStatus(e.target.value)} options={[{
-            value: 'All',
-            label: 'All Status'
-          }, {
-            value: 'Under Evaluation',
-            label: 'Under Evaluation'
-          }, {
-            value: 'Doc Review',
-            label: 'Doc Review'
-          }, {
-            value: 'Awarded',
-            label: 'Awarded'
-          }, {
-            value: 'Reject',
-            label: 'Reject'
-          }, {
-            value: 'Close',
-            label: 'Close'
-          }]} />
+            <Select
+              label="Status Filter"
+              value={status}
+              onChange={e => setStatus(e.target.value)}
+              options={[
+                { value: 'All', label: 'All Status' },
+                { value: 'Under Evaluation', label: 'Under Evaluation' },
+                { value: 'Doc Review', label: 'Doc Review' },
+                { value: 'Awarded', label: 'Awarded' },
+                { value: 'Reject', label: 'Reject' },
+                { value: 'Close', label: 'Close' }
+              ]}
+            />
 
             <div className="flex items-end">
               <div className="flex-1">
@@ -235,14 +238,14 @@ export function ExportPage() {
                   Date Range (Optional)
                 </label>
                 <p className="text-xs text-slate-500">
-                  Leave empty for all records
+                  Leave empty to export all records regardless of date
                 </p>
               </div>
             </div>
 
-            <DatePicker label="From Date" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+            <DatePicker label="From Date (Optional)" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
 
-            <DatePicker label="To Date" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+            <DatePicker label="To Date (Optional)" value={dateTo} onChange={e => setDateTo(e.target.value)} />
           </div>
 
           {exportError && (
@@ -272,7 +275,7 @@ export function ExportPage() {
                 Technical Evaluation Good
               </h3>
               <p className="text-sm text-slate-500">
-                Download the technical evaluation template for goods procurement
+                Download technical evaluation template for goods procurement
               </p>
             </div>
           </div>
@@ -308,7 +311,7 @@ export function ExportPage() {
                 Final Technical Evaluation Service
               </h3>
               <p className="text-sm text-slate-500">
-                Download the final technical evaluation template for service contracts
+                Download final technical evaluation template for service contracts
               </p>
             </div>
           </div>
@@ -333,5 +336,6 @@ export function ExportPage() {
           </Button>
         </div>
       </div>
-    </div>;
+    </div>
+  );
 }

@@ -9,7 +9,7 @@ describe('Auth Endpoints', () => {
   const validUser = {
     name: 'Test Engineer',
     email: 'engineer@ceb.lk',
-    epfNumber: 'EPF12345',
+    epfNumber: '12345',
     password: 'SecurePassword123!',
     role: 'Admin'
   };
