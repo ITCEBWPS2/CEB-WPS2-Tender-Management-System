@@ -60,7 +60,6 @@ const protect = async (c, next) => {
     c.set('user', payload);
     await next();
   } catch (err) {
-    console.error('[Hono Auth Error]:', err.message);
     return c.json({ message: 'Invalid token' }, 401);
   }
 };
@@ -101,8 +100,20 @@ app.onError((err, c) => {
   return c.json({ message: err.message || 'Server Error' }, status);
 });
 
+// Helper for Joi body validation
+const validateBody = (schema) => async (c, next) => {
+  const body = await c.req.json().catch(() => ({}));
+  const { error } = schema.validate(body, { abortEarly: false, allowUnknown: true });
+  if (error) {
+    const message = error.details.map(d => d.message).join(', ');
+    return c.json({ message }, 400);
+  }
+  c.set('parsedBody', body);
+  await next();
+};
+
 // ---------------------------------------------------------------------------
-// Helpers & Validation Schemas
+// 1. CATEGORIES RESOURCE (/api/categories)
 // ---------------------------------------------------------------------------
 
 const formatCategory = (row) => {
@@ -130,24 +141,8 @@ const updateCategorySchema = Joi.object({
   status: Joi.string().allow('', null)
 });
 
-const validateBody = (schema) => async (c, next) => {
-  const body = await c.req.json().catch(() => ({}));
-  const { error } = schema.validate(body, { abortEarly: false, allowUnknown: true });
-  if (error) {
-    const message = error.details.map(d => d.message).join(', ');
-    return c.json({ message }, 400);
-  }
-  c.set('parsedBody', body);
-  await next();
-};
-
-// ---------------------------------------------------------------------------
-// Categories Routes (Migrated Proof-of-Concept)
-// ---------------------------------------------------------------------------
-
 const categories = new Hono();
 
-// GET /api/categories
 categories.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
   const { data, error } = await supabase
     .from('categories')
@@ -159,7 +154,6 @@ categories.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk')
   return c.json(items);
 });
 
-// POST /api/categories
 categories.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(createCategorySchema), async (c) => {
   const body = c.get('parsedBody');
   const user = c.get('user');
@@ -192,7 +186,6 @@ categories.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), valida
   return c.json(item, 201);
 });
 
-// GET /api/categories/:id
 categories.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
   const id = c.req.param('id');
   const { data, error } = await supabase
@@ -207,7 +200,6 @@ categories.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Cler
   return c.json(formatCategory(data));
 });
 
-// PUT /api/categories/:id
 categories.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(updateCategorySchema), async (c) => {
   const id = c.req.param('id');
   const body = c.get('parsedBody');
@@ -245,7 +237,6 @@ categories.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), vali
   return c.json(item);
 });
 
-// DELETE /api/categories/:id
 categories.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
@@ -274,10 +265,543 @@ categories.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
   return c.json({ message: 'Deleted' });
 });
 
-// Mount Categories router under /api/categories
 app.route('/api/categories', categories);
 
-// Fallback for unhandled routes during migration phase
+// ---------------------------------------------------------------------------
+// 2. DEPARTMENTS RESOURCE (/api/departments)
+// ---------------------------------------------------------------------------
+
+const formatDepartment = (row) => {
+  if (!row) return null;
+  return {
+    _id: row.id,
+    id: row.id,
+    name: row.name || '',
+    code: row.code || '',
+    description: row.description || '',
+    headOfDepartment: row.head_of_department || '',
+    status: row.status || 'Active',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+};
+
+const createDepartmentSchema = Joi.object({
+  name: Joi.string().trim().required(),
+  code: Joi.string().allow('', null),
+  description: Joi.string().allow('', null),
+  headOfDepartment: Joi.string().allow('', null),
+  status: Joi.string().allow('', null)
+});
+
+const updateDepartmentSchema = Joi.object({
+  name: Joi.string().trim().allow('', null),
+  code: Joi.string().allow('', null),
+  description: Joi.string().allow('', null),
+  headOfDepartment: Joi.string().allow('', null),
+  status: Joi.string().allow('', null)
+});
+
+const departments = new Hono();
+
+departments.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+  const { data, error } = await supabase
+    .from('departments')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  const items = (data || []).map(formatDepartment);
+  return c.json(items);
+});
+
+departments.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(createDepartmentSchema), async (c) => {
+  const body = c.get('parsedBody');
+  const user = c.get('user');
+
+  const insertData = {
+    name: body.name || null,
+    code: body.code || null,
+    description: body.description || null,
+    head_of_department: body.headOfDepartment !== undefined ? body.headOfDepartment : (body.head_of_department || null),
+    status: body.status || 'Active'
+  };
+
+  const { data, error } = await supabase
+    .from('departments')
+    .insert([insertData])
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === '23505') {
+      return c.json({ message: 'Department already exists' }, 400);
+    }
+    throw error;
+  }
+
+  const item = formatDepartment(data);
+
+  await AuditLog.create({
+    user: user?.email,
+    type: 'create:department',
+    message: `Created department ${item.name} (${item.code})`
+  }).catch(err => console.error('AuditLog error:', err));
+
+  return c.json(item, 201);
+});
+
+departments.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+  const id = c.req.param('id');
+  const { data, error } = await supabase
+    .from('departments')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return c.json({ message: 'Not found' }, 404);
+
+  return c.json(formatDepartment(data));
+});
+
+departments.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(updateDepartmentSchema), async (c) => {
+  const id = c.req.param('id');
+  const body = c.get('parsedBody');
+  const user = c.get('user');
+
+  const updates = {};
+  if (body.name !== undefined) updates.name = body.name;
+  if (body.code !== undefined) updates.code = body.code;
+  if (body.description !== undefined) updates.description = body.description;
+  if (body.headOfDepartment !== undefined) updates.head_of_department = body.headOfDepartment;
+  else if (body.head_of_department !== undefined) updates.head_of_department = body.head_of_department;
+  if (body.status !== undefined) updates.status = body.status;
+
+  const { data, error } = await supabase
+    .from('departments')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === '23505') {
+      return c.json({ message: 'Department already exists' }, 400);
+    }
+    throw error;
+  }
+
+  if (!data) return c.json({ message: 'Not found' }, 404);
+
+  const item = formatDepartment(data);
+
+  await AuditLog.create({
+    user: user?.email,
+    type: 'update:department',
+    message: `Updated department ${item.name}`
+  }).catch(err => console.error('AuditLog error:', err));
+
+  return c.json(item);
+});
+
+departments.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user');
+
+  const { data: item } = await supabase
+    .from('departments')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from('departments')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+
+  if (item) {
+    await AuditLog.create({
+      user: user?.email,
+      type: 'delete:department',
+      message: `Deleted department ${item.name}`
+    }).catch(err => console.error('AuditLog error:', err));
+  }
+
+  return c.json({ message: 'Deleted' });
+});
+
+app.route('/api/departments', departments);
+
+// ---------------------------------------------------------------------------
+// 3. STAFF RESOURCE (/api/staff)
+// ---------------------------------------------------------------------------
+
+const formatStaff = (row) => {
+  if (!row) return null;
+  const dept = row.departments || null;
+  const formattedDept = dept ? {
+    _id: dept.id,
+    id: dept.id,
+    name: dept.name || '',
+    code: dept.code || '',
+    description: dept.description || '',
+    headOfDepartment: dept.head_of_department || '',
+    status: dept.status || 'Active'
+  } : null;
+
+  return {
+    _id: row.id,
+    id: row.id,
+    name: row.name || '',
+    email: row.email || '',
+    area: row.area || '',
+    designation: row.designation || '',
+    department_id: row.department_id || null,
+    department: formattedDept || row.department_id || null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+};
+
+const extractDepartmentId = (body) => {
+  if (!body) return null;
+  if (body.department_id && typeof body.department_id === 'string' && body.department_id.trim() !== '') {
+    return body.department_id.trim();
+  }
+  if (body.department) {
+    if (typeof body.department === 'string' && body.department.trim() !== '') {
+      return body.department.trim();
+    }
+    if (typeof body.department === 'object' && body.department.id) {
+      return body.department.id;
+    }
+  }
+  return null;
+};
+
+const createStaffSchema = Joi.object({
+  name: Joi.string().trim().required(),
+  email: Joi.string().allow('', null),
+  area: Joi.string().allow('', null),
+  designation: Joi.string().allow('', null),
+  department: Joi.string().allow('', null)
+});
+
+const updateStaffSchema = Joi.object({
+  name: Joi.string().trim().allow('', null),
+  email: Joi.string().allow('', null),
+  area: Joi.string().allow('', null),
+  designation: Joi.string().allow('', null),
+  department: Joi.string().allow('', null)
+});
+
+const staff = new Hono();
+
+staff.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+  const { data, error } = await supabase
+    .from('staff')
+    .select('*, departments(*)')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  const items = (data || []).map(formatStaff);
+  return c.json(items);
+});
+
+staff.post('/', protect, authorize('Admin', 'CECOM'), validateBody(createStaffSchema), async (c) => {
+  const body = c.get('parsedBody');
+  const user = c.get('user');
+
+  const departmentId = extractDepartmentId(body);
+
+  const insertData = {
+    name: body.name || null,
+    email: body.email || null,
+    area: body.area || null,
+    designation: body.designation || null,
+    department_id: departmentId
+  };
+
+  const { data: inserted, error } = await supabase
+    .from('staff')
+    .insert([insertData])
+    .select('*, departments(*)')
+    .single();
+
+  if (error) {
+    if (error.code === '23505') {
+      return c.json({ message: 'Staff member already exists' }, 400);
+    }
+    throw error;
+  }
+
+  const item = formatStaff(inserted);
+
+  await AuditLog.create({
+    user: user?.email,
+    type: 'create:staff',
+    message: `Created staff ${item.name}`
+  }).catch(err => console.error('AuditLog error:', err));
+
+  return c.json(item, 201);
+});
+
+staff.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+  const id = c.req.param('id');
+  const { data, error } = await supabase
+    .from('staff')
+    .select('*, departments(*)')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return c.json({ message: 'Not found' }, 404);
+
+  return c.json(formatStaff(data));
+});
+
+staff.put('/:id', protect, authorize('Admin', 'CECOM'), validateBody(updateStaffSchema), async (c) => {
+  const id = c.req.param('id');
+  const body = c.get('parsedBody');
+  const user = c.get('user');
+
+  const updates = {};
+  if (body.name !== undefined) updates.name = body.name;
+  if (body.email !== undefined) updates.email = body.email;
+  if (body.area !== undefined) updates.area = body.area;
+  if (body.designation !== undefined) updates.designation = body.designation;
+
+  const departmentId = extractDepartmentId(body);
+  if (departmentId !== null || body.department !== undefined || body.department_id !== undefined) {
+    updates.department_id = departmentId;
+  }
+
+  const { data: updated, error } = await supabase
+    .from('staff')
+    .update(updates)
+    .eq('id', id)
+    .select('*, departments(*)')
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === '23505') {
+      return c.json({ message: 'Staff member already exists' }, 400);
+    }
+    throw error;
+  }
+
+  if (!updated) return c.json({ message: 'Not found' }, 404);
+
+  const item = formatStaff(updated);
+
+  await AuditLog.create({
+    user: user?.email,
+    type: 'update:staff',
+    message: `Updated staff ${item.name}`
+  }).catch(err => console.error('AuditLog error:', err));
+
+  return c.json(item);
+});
+
+staff.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user');
+
+  const { data: item } = await supabase
+    .from('staff')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from('staff')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+
+  if (item) {
+    await AuditLog.create({
+      user: user?.email,
+      type: 'delete:staff',
+      message: `Deleted staff ${item.name}`
+    }).catch(err => console.error('AuditLog error:', err));
+  }
+
+  return c.json({ message: 'Deleted' });
+});
+
+app.route('/api/staff', staff);
+
+// ---------------------------------------------------------------------------
+// 4. BIDDERS RESOURCE (/api/bidders)
+// ---------------------------------------------------------------------------
+
+const formatBidder = (row) => {
+  if (!row) return null;
+  return {
+    _id: row.id,
+    id: row.id,
+    name: row.name || '',
+    email: row.email || '',
+    address: row.address || '',
+    contact: row.contact || '',
+    createdAt: row.created_at,
+    updatedAt: row.updated_at
+  };
+};
+
+const createBidderSchema = Joi.object({
+  name: Joi.string().trim().required(),
+  email: Joi.string().allow('', null),
+  address: Joi.string().allow('', null),
+  contact: Joi.string().allow('', null)
+});
+
+const updateBidderSchema = Joi.object({
+  name: Joi.string().trim().allow('', null),
+  email: Joi.string().allow('', null),
+  address: Joi.string().allow('', null),
+  contact: Joi.string().allow('', null)
+});
+
+const bidders = new Hono();
+
+bidders.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+  const { data, error } = await supabase
+    .from('bidders')
+    .select('*')
+    .order('created_at', { ascending: false });
+
+  if (error) throw error;
+  const items = (data || []).map(formatBidder);
+  return c.json(items);
+});
+
+bidders.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(createBidderSchema), async (c) => {
+  const body = c.get('parsedBody');
+  const user = c.get('user');
+
+  const insertData = {
+    name: body.name || null,
+    email: body.email || null,
+    address: body.address || null,
+    contact: body.contact || null
+  };
+
+  const { data, error } = await supabase
+    .from('bidders')
+    .insert([insertData])
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === '23505') {
+      return c.json({ message: 'Supplier/Bidder already exists' }, 400);
+    }
+    throw error;
+  }
+
+  const item = formatBidder(data);
+
+  await AuditLog.create({
+    user: user?.email,
+    type: 'create:bidder',
+    message: `Created bidder ${item.name}`
+  }).catch(err => console.error('AuditLog error:', err));
+
+  return c.json(item, 201);
+});
+
+bidders.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+  const id = c.req.param('id');
+  const { data, error } = await supabase
+    .from('bidders')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw error;
+  if (!data) return c.json({ message: 'Not found' }, 404);
+
+  return c.json(formatBidder(data));
+});
+
+bidders.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(updateBidderSchema), async (c) => {
+  const id = c.req.param('id');
+  const body = c.get('parsedBody');
+  const user = c.get('user');
+
+  const updates = {};
+  if (body.name !== undefined) updates.name = body.name;
+  if (body.email !== undefined) updates.email = body.email;
+  if (body.address !== undefined) updates.address = body.address;
+  if (body.contact !== undefined) updates.contact = body.contact;
+
+  const { data, error } = await supabase
+    .from('bidders')
+    .update(updates)
+    .eq('id', id)
+    .select()
+    .maybeSingle();
+
+  if (error) {
+    if (error.code === '23505') {
+      return c.json({ message: 'Supplier/Bidder already exists' }, 400);
+    }
+    throw error;
+  }
+
+  if (!data) return c.json({ message: 'Not found' }, 404);
+
+  const item = formatBidder(data);
+
+  await AuditLog.create({
+    user: user?.email,
+    type: 'update:bidder',
+    message: `Updated bidder ${item.name}`
+  }).catch(err => console.error('AuditLog error:', err));
+
+  return c.json(item);
+});
+
+bidders.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
+  const id = c.req.param('id');
+  const user = c.get('user');
+
+  const { data: item } = await supabase
+    .from('bidders')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  const { error } = await supabase
+    .from('bidders')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw error;
+
+  if (item) {
+    await AuditLog.create({
+      user: user?.email,
+      type: 'delete:bidder',
+      message: `Deleted bidder ${item.name}`
+    }).catch(err => console.error('AuditLog error:', err));
+  }
+
+  return c.json({ message: 'Deleted' });
+});
+
+app.route('/api/bidders', bidders);
+
+// ---------------------------------------------------------------------------
+// Fallback Route
+// ---------------------------------------------------------------------------
+
 app.all('*', (c) => {
   return c.json({ message: 'Route not implemented in Hono worker yet' }, 501);
 });
