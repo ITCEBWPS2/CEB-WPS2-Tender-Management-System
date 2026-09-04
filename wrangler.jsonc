@@ -11,5 +11,11 @@
   },
   "vars": {
     "CORS_ORIGIN": "https://ceb-tms-frontend.skpthiran.workers.dev"
-  }
+  },
+  "kv_namespaces": [
+    {
+      "binding": "RATE_LIMIT_KV",
+      "id": "b5274e25c1bb48b1a3b6addb9ffe1b3a"
+    }
+  ]
 }

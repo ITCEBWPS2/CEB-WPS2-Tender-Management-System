@@ -47,43 +47,56 @@ const getJwtSecret = (cSecret) => {
   return secret;
 };
 
-// 4. Rate Limiting Middleware for Auth Login
+// 4. Rate Limiting Middleware for Auth Login (KV-backed on Cloudflare Workers)
 const loginRateLimitStore = new Map();
 const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
 const LOGIN_MAX_ATTEMPTS = 5;
 
-const cleanupRateLimitStore = () => {
-  const now = Date.now();
-  for (const [ip, entry] of loginRateLimitStore.entries()) {
-    if (now - entry.startTime > LOGIN_WINDOW_MS) {
-      loginRateLimitStore.delete(ip);
-    }
-  }
-};
-
 const loginRateLimiter = async (c, next) => {
-  cleanupRateLimitStore();
   const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
-  const now = Date.now();
-  const entry = loginRateLimitStore.get(ip);
+  const key = `login-attempts:${ip}`;
+  const kv = c.env?.RATE_LIMIT_KV;
 
-  if (entry && now - entry.startTime < LOGIN_WINDOW_MS) {
-    if (entry.count >= LOGIN_MAX_ATTEMPTS) {
+  if (kv) {
+    // Cloudflare KV-backed rate limiter for Workers production
+    const val = await kv.get(key);
+    const count = val ? parseInt(val, 10) : 0;
+
+    if (count >= LOGIN_MAX_ATTEMPTS) {
       return c.json({ message: 'Too many failed login attempts. Please try again after 15 minutes.' }, 429);
     }
-  }
 
-  await next();
+    await next();
 
-  if (c.res.status === 400 || c.res.status === 401) {
-    const currentEntry = loginRateLimitStore.get(ip);
-    if (!currentEntry || now - currentEntry.startTime >= LOGIN_WINDOW_MS) {
-      loginRateLimitStore.set(ip, { count: 1, startTime: now });
-    } else {
-      currentEntry.count += 1;
+    if (c.res.status === 400 || c.res.status === 401) {
+      const newCount = count + 1;
+      await kv.put(key, String(newCount), { expirationTtl: 900 });
+    } else if (c.res.status === 200) {
+      await kv.delete(key);
     }
-  } else if (c.res.status === 200) {
-    loginRateLimitStore.delete(ip);
+  } else {
+    // In-memory fallback (local dev / non-KV environment)
+    const now = Date.now();
+    const entry = loginRateLimitStore.get(ip);
+
+    if (entry && now - entry.startTime < LOGIN_WINDOW_MS) {
+      if (entry.count >= LOGIN_MAX_ATTEMPTS) {
+        return c.json({ message: 'Too many failed login attempts. Please try again after 15 minutes.' }, 429);
+      }
+    }
+
+    await next();
+
+    if (c.res.status === 400 || c.res.status === 401) {
+      const currentEntry = loginRateLimitStore.get(ip);
+      if (!currentEntry || now - currentEntry.startTime >= LOGIN_WINDOW_MS) {
+        loginRateLimitStore.set(ip, { count: 1, startTime: now });
+      } else {
+        currentEntry.count += 1;
+      }
+    } else if (c.res.status === 200) {
+      loginRateLimitStore.delete(ip);
+    }
   }
 };
 
