@@ -1,41 +1,16 @@
-process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_jwt_secret_for_automated_testing_12345';
-if (typeof jest !== 'undefined') {
-  jest.setTimeout(30000);
-}
-
-const mongoose = require('mongoose');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const jwt = require('jsonwebtoken');
 
-let mongoServer;
+process.env.JWT_SECRET = process.env.JWT_SECRET || 'test_jwt_secret_for_automated_testing_12345';
+if (typeof jest !== 'undefined') {
+  jest.setTimeout(30000);
+}
 
 const setupDatabase = () => {
-  beforeAll(async () => {
-    mongoServer = await MongoMemoryServer.create();
-    const uri = mongoServer.getUri();
-    await mongoose.connect(uri);
-  });
-
-  afterEach(async () => {
-    if (mongoose.connection.readyState === 1) {
-      const collections = mongoose.connection.collections;
-      for (const key in collections) {
-        await collections[key].deleteMany({});
-      }
-    }
-  });
-
-  afterAll(async () => {
-    if (mongoose.connection.readyState !== 0) {
-      await mongoose.disconnect();
-    }
-    if (mongoServer) {
-      await mongoServer.stop();
-    }
-  });
+  // No-op for Supabase tests (individual test suites manage dynamic record seeding/cleaning)
 };
 
 const createTestApp = () => {
@@ -54,7 +29,7 @@ const createTestApp = () => {
 
 const generateTestToken = (payload = {}) => {
   const defaultPayload = {
-    id: new mongoose.Types.ObjectId().toString(),
+    id: crypto.randomUUID(),
     email: 'admin@ceb.lk',
     epfNumber: 'EPF0001',
     role: 'Admin',

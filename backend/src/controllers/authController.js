@@ -1,7 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const supabase = require('../config/supabase');
-const AuditLog = require('../models/AuditLog');
+const AuditLog = require('../utils/auditLogger');
 
 const formatUserPayload = (row) => ({
   _id: row.id,
