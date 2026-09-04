@@ -10,9 +10,6 @@
     "enabled": true
   },
   "vars": {
-    "CORS_ORIGIN": "http://localhost:5173",
-    "JWT_SECRET": "super_secret_jwt_key_12345",
-    "SUPABASE_URL": "https://qkbnnlnyanysiokegdpo.supabase.co",
-    "SUPABASE_SERVICE_ROLE_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFrYm5ubG55YW55c2lva2VnZHBvIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4ODI0ODYzMSwiZXhwIjoyMTAzODI0NjMxfQ.ZQ04VO8wfuO4MSt2CIFPzkI6N09YeQFZqiZcWELI8ek"
+    "CORS_ORIGIN": "https://ceb-tms-frontend.skpthiran.workers.dev"
   }
 }
