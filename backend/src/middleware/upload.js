@@ -1,6 +1,5 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
 
 const ALLOWED_EXTENSIONS = ['.pdf', '.docx', '.doc', '.jpg', '.jpeg', '.png'];
 const ALLOWED_MIME_TYPES = [
@@ -13,20 +12,8 @@ const ALLOWED_MIME_TYPES = [
   'image/x-png'
 ];
 
-const storage = multer.diskStorage({
-  destination: function (req, file, cb) {
-    const recordId = req.params.id || 'temp';
-    const uploadDir = path.join(__dirname, '../../uploads/records', recordId);
-    fs.mkdirSync(uploadDir, { recursive: true });
-    cb(null, uploadDir);
-  },
-  filename: function (req, file, cb) {
-    const ext = path.extname(file.originalname).toLowerCase();
-    const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
-    const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
-    cb(null, `${cleanBase}-${uniqueSuffix}${ext}`);
-  }
-});
+// Use memoryStorage so file buffers are kept in memory for direct Supabase Storage uploads
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
   const ext = path.extname(file.originalname).toLowerCase();

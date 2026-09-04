@@ -1,6 +1,4 @@
 const request = require('supertest');
-const path = require('path');
-const fs = require('fs');
 const { setupDatabase, createTestApp, generateTestToken } = require('./setup');
 const supabase = require('../src/config/supabase');
 
@@ -13,7 +11,6 @@ describe('Record Documents Management', () => {
   const procurementToken = generateTestToken({ role: 'Procurement', email: 'procurement@ceb.lk', name: 'Procurement Officer' });
 
   let testRecord;
-  const testUploadDir = path.join(__dirname, '../uploads/records');
 
   beforeEach(async () => {
     const { data } = await supabase.from('records').insert([{
@@ -30,12 +27,6 @@ describe('Record Documents Management', () => {
   afterEach(async () => {
     if (testRecord && testRecord.id) {
       await supabase.from('records').delete().eq('id', testRecord.id);
-    }
-  });
-
-  afterAll(() => {
-    if (fs.existsSync(testUploadDir)) {
-      fs.rmSync(testUploadDir, { recursive: true, force: true });
     }
   });
 
