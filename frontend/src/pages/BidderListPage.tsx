@@ -16,10 +16,8 @@ export function BidderListPage() {
     (async () => {
       if (!deleteId) return;
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch(`/api/bidders/${deleteId}`, {
-          method: 'DELETE',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+          method: 'DELETE'
         });
         if (res.ok) {
           setBidders(prev => prev.filter(b => b.id !== deleteId));
@@ -41,10 +39,7 @@ export function BidderListPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await apiFetch('/api/bidders', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch('/api/bidders');
         if (!res.ok) throw new Error('Failed to fetch suppliers from server');
         const data = await res.json();
         const mapped = Array.isArray(data) ? data.map((b: any) => ({ ...b, id: b._id || b.id })) : [];

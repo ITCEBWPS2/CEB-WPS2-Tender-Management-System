@@ -1,4 +1,5 @@
 const request = require('supertest');
+const bcrypt = require('bcryptjs');
 const { setupDatabase, createTestApp } = require('./setup');
 const supabase = require('../src/config/supabase');
 
@@ -24,38 +25,27 @@ describe('Auth Endpoints', () => {
     await supabase.from('users').delete().eq('epf_number', validUser.epfNumber);
   });
 
-  describe('POST /api/auth/register', () => {
-    it('should register a new user successfully', async () => {
+  describe('POST /api/auth/register (Removed)', () => {
+    it('should return 404 as public register endpoint is removed for security', async () => {
       const res = await request(app)
         .post('/api/auth/register')
         .send(validUser);
 
-      expect(res.status).toBe(201);
-      expect(res.body).toHaveProperty('id');
-      expect(res.body.name).toBe(validUser.name);
-      expect(res.body.email).toBe(validUser.email);
-      expect(res.body.epfNumber).toBe(validUser.epfNumber);
-      expect(res.body.role).toBe(validUser.role);
-    });
-
-    it('should return 400 when missing required fields (e.g. missing epfNumber & email)', async () => {
-      const res = await request(app)
-        .post('/api/auth/register')
-        .send({
-          name: 'Incomplete User',
-          password: 'password123'
-        });
-
-      expect(res.status).toBe(400);
-      expect(res.body).toHaveProperty('message');
+      expect(res.status).toBe(404);
     });
   });
 
   describe('POST /api/auth/login', () => {
     beforeEach(async () => {
-      await request(app)
-        .post('/api/auth/register')
-        .send(validUser);
+      const hash = bcrypt.hashSync(validUser.password, 10);
+      await supabase.from('users').insert([{
+        name: validUser.name,
+        email: validUser.email,
+        epf_number: validUser.epfNumber,
+        password: hash,
+        role: validUser.role,
+        status: 'Active'
+      }]);
     });
 
     it('should login successfully with valid credentials and return a JWT', async () => {

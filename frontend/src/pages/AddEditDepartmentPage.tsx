@@ -47,10 +47,7 @@ export function AddEditDepartmentPage() {
       (async () => {
         setIsLoading(true);
         try {
-          const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-          const res = await apiFetch(`/api/departments/${id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined
-          });
+          const res = await apiFetch(`/api/departments/${id}`);
           if (res.ok) {
             const data = await res.json();
             setFormData({ ...data, id: data._id || data.id });
@@ -87,15 +84,11 @@ export function AddEditDepartmentPage() {
     // Validation removed as per user request
     (async () => {
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const url = isEdit ? `/api/departments/${id}` : '/api/departments';
         const method = isEdit ? 'PUT' : 'POST';
         const res = await apiFetch(url, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(formData)
         });
         if (!res.ok) {

@@ -18,10 +18,8 @@ export function BidOpeningCommitteePage() {
     (async () => {
       if (!deleteId) return;
       try {
-        const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
         const res = await apiFetch(`/api/committees/${deleteId}`, {
-          method: 'DELETE',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+          method: 'DELETE'
         });
         if (res.ok) {
           setCommittees(prev => prev.filter(c => c.id !== deleteId));
@@ -43,10 +41,7 @@ export function BidOpeningCommitteePage() {
       setIsLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem('mock-auth-token') || sessionStorage.getItem('authToken') || sessionStorage.getItem('token');
-        const res = await apiFetch('/api/committees', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch('/api/committees');
         if (!res.ok) throw new Error('Failed to fetch committees from server');
         const data = await res.json();
         const mapped = Array.isArray(data) ? data.map((d: any) => ({

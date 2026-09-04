@@ -29,20 +29,13 @@ export function AddEditBidderPage() {
     return '/admin/bidders';
   };
 
-  const getToken = () => {
-    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
-  };
-  
   useEffect(() => {
     if (isEdit) {
       (async () => {
         setIsLoading(true);
         setFetchError(null);
         try {
-          const token = getToken();
-          const res = await apiFetch(`/api/bidders/${id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined
-          });
+          const res = await apiFetch(`/api/bidders/${id}`);
           if (!res.ok) throw new Error('Failed to fetch supplier details');
           const data = await res.json();
           setFormData({ ...data, id: data._id || data.id });
@@ -87,7 +80,6 @@ export function AddEditBidderPage() {
 
     (async () => {
       try {
-        const token = getToken();
         const payload = {
           name: formData.name,
           email: formData.email,
@@ -98,10 +90,7 @@ export function AddEditBidderPage() {
         const method = isEdit ? 'PUT' : 'POST';
         const res = await apiFetch(url, {
           method,
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {})
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         });
         if (!res.ok) {

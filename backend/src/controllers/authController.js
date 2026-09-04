@@ -12,69 +12,6 @@ const formatUserPayload = (row) => ({
   role: row.role || 'Clerk'
 });
 
-exports.register = async (req, res, next) => {
-  try {
-    const { name, email, epfNumber, password, role } = req.body; 
-
-    if (!email || !password || !name || !epfNumber) {
-      return res.status(400).json({ message: 'Missing fields' });
-    }
-
-    const { data: existingEmail } = await supabase
-      .from('users')
-      .select('id')
-      .eq('email', email)
-      .maybeSingle();
-
-    if (existingEmail) return res.status(400).json({ message: 'Email already registered' });
-
-    const { data: existingEPF } = await supabase
-      .from('users')
-      .select('id')
-      .eq('epf_number', epfNumber)
-      .maybeSingle();
-
-    if (existingEPF) return res.status(400).json({ message: 'EPF Number already registered' });
-
-    const hash = await bcrypt.hash(password, 10);
-
-    const { data: newUser, error } = await supabase
-      .from('users')
-      .insert([{
-        name,
-        email,
-        epf_number: epfNumber,
-        password: hash,
-        role: role || 'Clerk',
-        status: 'Active'
-      }])
-      .select()
-      .single();
-
-    if (error) {
-      if (error.code === '23505') {
-        return res.status(400).json({ message: 'Email or EPF Number already registered' });
-      }
-      throw error;
-    }
-
-    const payload = formatUserPayload(newUser);
-
-    await AuditLog.create({ 
-      user: email, 
-      type: 'register', 
-      message: `User registered: ${email} (EPF: ${epfNumber})` 
-    }).catch(err => console.error('AuditLog error:', err));
-
-    res.status(201).json(payload);
-  } catch (err) {
-    if (err.code === '23505') {
-      return res.status(400).json({ message: 'Email or EPF Number already registered' });
-    }
-    next(err);
-  }
-};
-
 exports.login = async (req, res, next) => {
   try { 
     const { email, password } = req.body;
@@ -105,8 +42,13 @@ exports.login = async (req, res, next) => {
 
     console.log(`✅ LOGIN SUCCESS: Authenticated -> ${user.email}`);
 
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error('JWT_SECRET environment variable is not configured');
+    }
+
     const payload = formatUserPayload(user);
-    const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '8h' });
+    const token = jwt.sign(payload, secret, { expiresIn: '8h' });
 
     try {
       await supabase

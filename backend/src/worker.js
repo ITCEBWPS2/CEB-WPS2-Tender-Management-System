@@ -38,11 +38,56 @@ app.use('*', async (c, next) => {
   })(c, next);
 });
 
-// 3. Rate Limiting Note:
-// express-rate-limit is omitted for Workers serverless environment.
-// In production on Cloudflare Workers, rate limiting will be enforced via Cloudflare Rate Limiting Bindings or WAF rules.
+// 3. JWT Secret Helper (Strict - No Hardcoded Fallback)
+const getJwtSecret = (cSecret) => {
+  const secret = cSecret || (typeof process !== 'undefined' && process.env ? process.env.JWT_SECRET : undefined);
+  if (!secret) {
+    throw new Error('JWT_SECRET environment variable is not configured');
+  }
+  return secret;
+};
 
-// 4. Auth & Authorization Middleware (Web-Standard using 'jose')
+// 4. Rate Limiting Middleware for Auth Login
+const loginRateLimitStore = new Map();
+const LOGIN_WINDOW_MS = 15 * 60 * 1000; // 15 minutes
+const LOGIN_MAX_ATTEMPTS = 5;
+
+const cleanupRateLimitStore = () => {
+  const now = Date.now();
+  for (const [ip, entry] of loginRateLimitStore.entries()) {
+    if (now - entry.startTime > LOGIN_WINDOW_MS) {
+      loginRateLimitStore.delete(ip);
+    }
+  }
+};
+
+const loginRateLimiter = async (c, next) => {
+  cleanupRateLimitStore();
+  const ip = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || '127.0.0.1';
+  const now = Date.now();
+  const entry = loginRateLimitStore.get(ip);
+
+  if (entry && now - entry.startTime < LOGIN_WINDOW_MS) {
+    if (entry.count >= LOGIN_MAX_ATTEMPTS) {
+      return c.json({ message: 'Too many failed login attempts. Please try again after 15 minutes.' }, 429);
+    }
+  }
+
+  await next();
+
+  if (c.res.status === 400 || c.res.status === 401) {
+    const currentEntry = loginRateLimitStore.get(ip);
+    if (!currentEntry || now - currentEntry.startTime >= LOGIN_WINDOW_MS) {
+      loginRateLimitStore.set(ip, { count: 1, startTime: now });
+    } else {
+      currentEntry.count += 1;
+    }
+  } else if (c.res.status === 200) {
+    loginRateLimitStore.delete(ip);
+  }
+};
+
+// 5. Auth & Authorization Middleware (Web-Standard using 'jose')
 const protect = async (c, next) => {
   const authHeader = c.req.header('authorization');
   if (!authHeader) {
@@ -55,8 +100,14 @@ const protect = async (c, next) => {
   }
 
   const token = parts[1];
-  const secretStr = c.env?.JWT_SECRET || process.env.JWT_SECRET || 'super_secret_jwt_key_12345';
-  const secretKey = new TextEncoder().encode(secretStr);
+  let secretKey;
+  try {
+    const secretStr = getJwtSecret(c.env?.JWT_SECRET);
+    secretKey = new TextEncoder().encode(secretStr);
+  } catch (err) {
+    console.error('JWT Secret configuration error:', err);
+    return c.json({ message: 'An unexpected error occurred' }, 500);
+  }
 
   try {
     const { payload } = await jwtVerify(token, secretKey);
@@ -98,7 +149,7 @@ const authorize = (...allowedRoles) => {
 
 // Helper for JWT creation
 const issueToken = async (payload, jwtSecret) => {
-  const secretStr = jwtSecret || process.env.JWT_SECRET || 'super_secret_jwt_key_12345';
+  const secretStr = getJwtSecret(jwtSecret);
   const secretKey = new TextEncoder().encode(secretStr);
   return await new SignJWT(payload)
     .setProtectedHeader({ alg: 'HS256' })
@@ -107,11 +158,14 @@ const issueToken = async (payload, jwtSecret) => {
     .sign(secretKey);
 };
 
-// 5. Global Error Handling
+// Global Error Handling
 app.onError((err, c) => {
   console.error('Worker error:', err);
   const status = err.status || err.statusCode || 500;
-  return c.json({ message: err.message || 'Server Error' }, status);
+  if (status >= 400 && status < 500) {
+    return c.json({ message: err.message || 'Client error' }, status);
+  }
+  return c.json({ message: 'An unexpected error occurred' }, 500);
 });
 
 // Helper for Joi body validation
@@ -141,16 +195,6 @@ const formatUserPayload = (row) => ({
   role: row.role || 'Clerk'
 });
 
-const registerSchema = Joi.object({
-  name: Joi.string().trim().required(),
-  email: Joi.string().email({ tlds: false }).trim().required(),
-  epfNumber: Joi.string().trim().pattern(/^\d{5}$/).messages({
-    'string.pattern.base': 'EPF Number must be exactly 5 numeric digits'
-  }).required(),
-  password: Joi.string().required(),
-  role: Joi.string().trim().allow('', null)
-});
-
 const loginSchema = Joi.object({
   email: Joi.string().trim().required(),
   password: Joi.string().required()
@@ -158,47 +202,7 @@ const loginSchema = Joi.object({
 
 const auth = new Hono();
 
-auth.post('/register', validateBody(registerSchema), async (c) => {
-  const { name, email, epfNumber, password, role } = c.get('parsedBody');
-
-  const { data: existingEmail } = await supabase.from('users').select('id').eq('email', email).maybeSingle();
-  if (existingEmail) return c.json({ message: 'Email already registered' }, 400);
-
-  const { data: existingEPF } = await supabase.from('users').select('id').eq('epf_number', epfNumber).maybeSingle();
-  if (existingEPF) return c.json({ message: 'EPF Number already registered' }, 400);
-
-  const hash = await bcrypt.hash(password, 10);
-
-  const { data: newUser, error } = await supabase
-    .from('users')
-    .insert([{
-      name,
-      email,
-      epf_number: epfNumber,
-      password: hash,
-      role: role || 'Clerk',
-      status: 'Active'
-    }])
-    .select()
-    .single();
-
-  if (error) {
-    if (error.code === '23505') return c.json({ message: 'Email or EPF Number already registered' }, 400);
-    throw error;
-  }
-
-  const payload = formatUserPayload(newUser);
-
-  await AuditLog.create({
-    user: email,
-    type: 'register',
-    message: `User registered: ${email} (EPF: ${epfNumber})`
-  }).catch(err => console.error(err));
-
-  return c.json(payload, 201);
-});
-
-auth.post('/login', validateBody(loginSchema), async (c) => {
+auth.post('/login', loginRateLimiter, validateBody(loginSchema), async (c) => {
   const { email, password } = c.get('parsedBody');
 
   const { data: user, error } = await supabase

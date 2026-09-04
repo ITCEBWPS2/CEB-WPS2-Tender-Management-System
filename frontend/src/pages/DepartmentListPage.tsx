@@ -42,10 +42,8 @@ export function DepartmentListPage() {
       }
 
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
         const res = await apiFetch(`/api/departments/${deleteId}`, {
-          method: 'DELETE',
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
+          method: 'DELETE'
         });
         if (res.ok) {
           setDepartments(prev => prev.filter(d => d.id !== deleteId));
@@ -67,10 +65,7 @@ export function DepartmentListPage() {
       setIsLoading(true);
       setError(null);
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
-        const res = await apiFetch('/api/departments', {
-          headers: token ? { Authorization: `Bearer ${token}` } : undefined
-        });
+        const res = await apiFetch('/api/departments');
         if (!res.ok) throw new Error('Failed to fetch units from server');
         const data = await res.json();
         const mapped = Array.isArray(data) ? data.map((d: any) => ({ ...d, id: d._id || d.id })) : [];

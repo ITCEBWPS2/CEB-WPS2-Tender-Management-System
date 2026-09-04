@@ -32,19 +32,12 @@ export function AddEditCategoryPage() {
     return '/admin/categories';
   };
 
-  const getToken = () => {
-    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
-  };
-
   useEffect(() => {
     if (isEdit) {
       (async () => {
         setIsLoading(true);
         try {
-          const token = getToken();
-          const res = await apiFetch(`/api/categories/${id}`, {
-            headers: token ? { Authorization: `Bearer ${token}` } : undefined
-          });
+          const res = await apiFetch(`/api/categories/${id}`);
           if (res.ok) {
             const data = await res.json();
             setFormData({ ...data, id: data._id || data.id });
@@ -89,15 +82,11 @@ export function AddEditCategoryPage() {
     if (validate()) {
       (async () => {
         try {
-          const token = getToken();
           const url = isEdit ? `/api/categories/${id}` : '/api/categories';
           const method = isEdit ? 'PUT' : 'POST';
           const res = await apiFetch(url, {
             method,
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { Authorization: `Bearer ${token}` } : {})
-            },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(formData)
           });
           if (!res.ok) {
