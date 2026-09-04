@@ -1,7 +1,8 @@
 const path = require('path');
-const fs = require('fs');
 const supabase = require('../config/supabase');
 const AuditLog = require('../utils/auditLogger');
+
+const STORAGE_BUCKET = 'record-documents';
 
 const formatRecordDocument = (doc) => {
   if (!doc) return null;
@@ -233,6 +234,21 @@ exports.remove = async (req, res, next) => {
       .eq('id', req.params.id)
       .maybeSingle();
 
+    if (item) {
+      // Remove any uploaded documents for this record from Supabase Storage
+      const { data: docs } = await supabase
+        .from('record_documents')
+        .select('file_path')
+        .eq('record_id', req.params.id);
+
+      if (docs && docs.length > 0) {
+        const storagePaths = docs.map(d => d.file_path).filter(Boolean);
+        if (storagePaths.length > 0) {
+          await supabase.storage.from(STORAGE_BUCKET).remove(storagePaths);
+        }
+      }
+    }
+
     const { error } = await supabase
       .from('records')
       .delete()
@@ -246,11 +262,6 @@ exports.remove = async (req, res, next) => {
         type: 'delete:record', 
         message: `Deleted record ${item.tender_number || item.id}` 
       }).catch(err => console.error('AuditLog error:', err));
-
-      const recordDir = path.join(__dirname, '../../uploads/records', req.params.id);
-      if (fs.existsSync(recordDir)) {
-        fs.rmSync(recordDir, { recursive: true, force: true });
-      }
     }
 
     res.json({ message: 'Deleted' });
@@ -270,28 +281,44 @@ exports.uploadDocuments = async (req, res, next) => {
       .maybeSingle();
 
     if (!record) {
-      if (req.files && req.files.length > 0) {
-        req.files.forEach(f => {
-          if (fs.existsSync(f.path)) fs.unlinkSync(f.path);
-        });
-      }
       return res.status(404).json({ message: 'Tender record not found' });
     }
 
     if (req.files && req.files.length > 0) {
       for (const file of req.files) {
-        const { error } = await supabase
+        const ext = path.extname(file.originalname).toLowerCase();
+        const cleanBase = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_-]/g, '_');
+        const uniqueSuffix = `${Date.now()}-${Math.round(Math.random() * 1e9)}`;
+        const storageFilename = `${cleanBase}-${uniqueSuffix}${ext}`;
+        const storagePath = `records/${record.id}/${storageFilename}`;
+
+        // Upload file buffer to Supabase Storage
+        const { error: uploadError } = await supabase
+          .storage
+          .from(STORAGE_BUCKET)
+          .upload(storagePath, file.buffer, {
+            contentType: file.mimetype,
+            upsert: true
+          });
+
+        if (uploadError) {
+          console.error('Supabase Storage upload error:', uploadError);
+          throw uploadError;
+        }
+
+        const { error: insertError } = await supabase
           .from('record_documents')
           .insert([{
             record_id: record.id,
             file_name: file.originalname,
-            file_path: file.path,
+            file_path: storagePath,
             file_size: file.size,
             mime_type: file.mimetype
           }]);
 
-        if (error) {
-          console.error('Failed to insert record_document:', error);
+        if (insertError) {
+          console.error('Failed to insert record_document row:', insertError);
+          throw insertError;
         }
       }
     }
@@ -356,17 +383,23 @@ exports.downloadDocument = async (req, res, next) => {
       return res.status(404).json({ message: 'Document not found' });
     }
 
-    const filePath = doc.file_path;
-    if (!fs.existsSync(filePath)) {
-      return res.status(404).json({ message: 'File not found on storage disk' });
+    const { data: fileBlob, error: downloadError } = await supabase
+      .storage
+      .from(STORAGE_BUCKET)
+      .download(doc.file_path);
+
+    if (downloadError || !fileBlob) {
+      console.error('Supabase Storage download error:', downloadError);
+      return res.status(404).json({ message: 'File not found in storage' });
     }
 
+    const arrayBuffer = await fileBlob.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
     res.setHeader('Content-Type', doc.mime_type || 'application/octet-stream');
-    res.download(filePath, doc.file_name, (err) => {
-      if (err && !res.headersSent) {
-        next(err);
-      }
-    });
+    res.setHeader('Content-Disposition', `attachment; filename="${encodeURIComponent(doc.file_name)}"`);
+    res.setHeader('Content-Length', buffer.length);
+    res.send(buffer);
   } catch (err) {
     next(err);
   }
@@ -394,11 +427,14 @@ exports.deleteDocument = async (req, res, next) => {
       return res.status(404).json({ message: 'Document not found' });
     }
 
-    if (fs.existsSync(doc.file_path)) {
-      try {
-        fs.unlinkSync(doc.file_path);
-      } catch (unlinkErr) {
-        console.warn('Failed to delete physical file:', unlinkErr.message);
+    if (doc.file_path) {
+      const { error: removeError } = await supabase
+        .storage
+        .from(STORAGE_BUCKET)
+        .remove([doc.file_path]);
+
+      if (removeError) {
+        console.warn('Failed to delete object from Supabase Storage:', removeError.message);
       }
     }
 
