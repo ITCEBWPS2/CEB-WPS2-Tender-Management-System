@@ -1,5 +1,5 @@
 const supabase = require('../config/supabase');
-const AuditLog = require('../models/AuditLog');
+const AuditLog = require('../utils/auditLogger');
 
 // Helper to format Supabase row into standard DTO expected by frontend
 const formatCategory = (row) => {

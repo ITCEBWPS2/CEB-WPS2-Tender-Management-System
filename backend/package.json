@@ -1,7 +1,7 @@
 {
   "name": "tms-backend",
   "version": "1.0.0",
-  "description": "Backend for Tender Management System - Node/Express/MongoDB",
+  "description": "Backend for Tender Management System - Node/Express/Supabase",
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
@@ -22,13 +22,11 @@
     "helmet": "^7.1.0",
     "joi": "^17.9.0",
     "jsonwebtoken": "^9.0.0",
-    "mongoose": "^7.0.0",
     "morgan": "^1.10.0",
     "multer": "^2.3.0"
   },
   "devDependencies": {
     "jest": "^30.5.0",
-    "mongodb-memory-server": "^11.2.0",
     "nodemon": "^3.1.11",
     "supertest": "^7.2.2"
   }

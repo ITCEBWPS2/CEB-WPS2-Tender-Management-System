@@ -1,7 +1,7 @@
 const path = require('path');
 const fs = require('fs');
 const supabase = require('../config/supabase');
-const AuditLog = require('../models/AuditLog');
+const AuditLog = require('../utils/auditLogger');
 
 const formatRecordDocument = (doc) => {
   if (!doc) return null;

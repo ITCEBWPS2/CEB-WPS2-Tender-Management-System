@@ -3,15 +3,12 @@ const express = require('express');
 const morgan = require('morgan');
 const cors = require('cors');
 const helmet = require('helmet');
-const connectDB = require('./config/db');
 
 const apiRouter = require('./routes');
 const errorHandler = require('./middleware/errorHandler');
 
 const app = express();
 const PORT = process.env.PORT || 5010;
-
-connectDB();
 
 app.use(helmet());
 

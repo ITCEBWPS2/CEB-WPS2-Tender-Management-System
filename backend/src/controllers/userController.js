@@ -1,6 +1,6 @@
 const bcrypt = require('bcryptjs');
 const supabase = require('../config/supabase');
-const AuditLog = require('../models/AuditLog');
+const AuditLog = require('../utils/auditLogger');
 
 const formatUser = (row) => {
   if (!row) return null;
