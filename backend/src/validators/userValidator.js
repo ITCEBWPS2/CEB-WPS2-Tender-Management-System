@@ -9,10 +9,14 @@ const validate = (schema) => (req, res, next) => {
   next();
 };
 
+const epfRegex = /^\d{5}$/;
+
 const createUserSchema = Joi.object({
   name: Joi.string().trim().required(),
   email: Joi.string().email({ tlds: false }).trim().required(),
-  epfNumber: Joi.string().trim().required(),
+  epfNumber: Joi.string().trim().pattern(epfRegex).messages({
+    'string.pattern.base': 'EPF Number must be exactly 5 numeric digits'
+  }).required(),
   password: Joi.string().required(),
   role: Joi.string().allow('', null),
   status: Joi.string().allow('', null)
@@ -21,7 +25,9 @@ const createUserSchema = Joi.object({
 const updateUserSchema = Joi.object({
   name: Joi.string().trim().allow('', null),
   email: Joi.string().email({ tlds: false }).trim().allow('', null),
-  epfNumber: Joi.string().trim().allow('', null),
+  epfNumber: Joi.string().trim().pattern(epfRegex).messages({
+    'string.pattern.base': 'EPF Number must be exactly 5 numeric digits'
+  }).allow('', null),
   password: Joi.string().allow('', null),
   role: Joi.string().allow('', null),
   status: Joi.string().allow('', null)

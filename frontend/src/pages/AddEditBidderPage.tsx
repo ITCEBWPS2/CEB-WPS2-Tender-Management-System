@@ -6,15 +6,32 @@ import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Bidder } from '../utils/types';
 import { apiFetch } from '../utils/api';
+
 export function AddEditBidderPage() {
   const navigate = useNavigate();
-  const {
-    id
-  } = useParams();
+  const { id } = useParams();
   const isEdit = !!id;
   const [formData, setFormData] = useState<Partial<Bidder>>({});
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(isEdit);
   const [fetchError, setFetchError] = useState<string | null>(null);
+
+  const getBidderListPath = () => {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const role = (JSON.parse(storedUser).role || '').toLowerCase().trim();
+        if (role === 'procurement') return '/procurement/bidders';
+        if (role === 'cecom') return '/cecom/bidders';
+        if (role === 'clerk') return '/clerk/bidders';
+      } catch (e) {}
+    }
+    return '/admin/bidders';
+  };
+
+  const getToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
+  };
   
   useEffect(() => {
     if (isEdit) {
@@ -22,7 +39,7 @@ export function AddEditBidderPage() {
         setIsLoading(true);
         setFetchError(null);
         try {
-          const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+          const token = getToken();
           const res = await apiFetch(`/api/bidders/${id}`, {
             headers: token ? { Authorization: `Bearer ${token}` } : undefined
           });
@@ -38,18 +55,39 @@ export function AddEditBidderPage() {
       })();
     }
   }, [id, isEdit]);
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+    if (errors[name]) {
+      setErrors(prev => {
+        const newErrors = { ...prev };
+        delete newErrors[name];
+        return newErrors;
+      });
+    }
   };
+
+  const validate = () => {
+    const newErrors: Record<string, string> = {};
+    if (!formData.name) newErrors.name = 'Supplier name is required';
+    if (formData.contact && formData.contact.trim() && !/^\+94\d{9}$/.test(formData.contact.trim())) {
+      newErrors.contact = 'Contact number must be in Sri Lankan +94 format (e.g. +94771234567)';
+    }
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Requirements removed as per user request
+    if (!validate()) return;
+
     (async () => {
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+        const token = getToken();
         const payload = {
           name: formData.name,
           email: formData.email,
@@ -68,13 +106,13 @@ export function AddEditBidderPage() {
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({ message: 'Failed to save' }));
-          alert(err.message || 'Failed to save supplier');
+          setErrors({ submit: err.message || 'Failed to save supplier' });
           return;
         }
-        navigate('/bidders');
+        navigate(getBidderListPath());
       } catch (err) {
         console.error(err);
-        alert('Failed to save supplier');
+        setErrors({ submit: 'Failed to save supplier due to a network error' });
       }
     })();
   };
@@ -91,7 +129,7 @@ export function AddEditBidderPage() {
   return (
     <div className="max-w-3xl mx-auto h-[calc(100vh-140px)] flex flex-col">
       <div className="flex-shrink-0 flex items-center gap-4 mb-6">
-        <button onClick={() => navigate('/bidders')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(getBidderListPath())} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
@@ -99,40 +137,64 @@ export function AddEditBidderPage() {
             {isEdit ? 'Edit Supplier' : 'Add New Supplier'}
           </h2>
           <p className="text-slate-500">
-            {isEdit ? `Editing supplier ${formData.name || 'details'}` : 'Register a new supplier in the system'}
+            {isEdit ? `Editing ${formData.name}` : 'Create a new supplier / bidder'}
           </p>
         </div>
       </div>
 
       <div className="flex-1 overflow-y-auto pr-2 custom-scrollbar">
-        {fetchError && (
-          <div className="mb-6 p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
-            {fetchError}
-          </div>
-        )}
-        <form id="bidderForm" onSubmit={handleSubmit} className="space-y-6 pb-24">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8 space-y-6">
-            <div className="flex items-center gap-2 text-[#bd5d2a] mb-2">
-              <div className="w-1.5 h-6 bg-[#bd5d2a] rounded-full" />
-              <h3 className="font-bold text-lg">Supplier Information</h3>
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8 space-y-6">
+          {(fetchError || errors.submit) && (
+            <div className="p-4 bg-red-50 border border-red-200 text-red-600 rounded-lg text-sm">
+              {fetchError || errors.submit}
             </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Input label="Company Name" name="name" value={formData.name || ''} onChange={handleChange} placeholder="Enter company name" />
-              <Input label="Email Address" name="email" type="email" value={formData.email || ''} onChange={handleChange} placeholder="supplier@example.com" />
-              <Input label="Contact Number" name="contact" value={formData.contact || ''} onChange={handleChange} placeholder="+94 ..." />
-            </div>
-            
-            <Textarea label="Office Address" name="address" value={formData.address || ''} onChange={handleChange} placeholder="Enter full business address" rows={4} />
-          </div>
+          )}
 
-          {/* Sticky Actions */}
-          <div className="sticky bottom-0 z-30 mt-8 flex items-center justify-end gap-4 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 p-6 ring-1 ring-slate-100">
-            <Button type="button" variant="secondary" onClick={() => navigate('/bidders')}>
+          <Input
+            label="Supplier / Company Name"
+            name="name"
+            value={formData.name || ''}
+            onChange={handleChange}
+            error={errors.name}
+            placeholder="e.g. Lanka Electrical Co."
+            required
+          />
+
+          <Input
+            label="Email Address"
+            name="email"
+            type="email"
+            value={formData.email || ''}
+            onChange={handleChange}
+            error={errors.email}
+            placeholder="e.g. info@lankaelectrical.lk"
+          />
+
+          <Input
+            label="Contact Number (+94 Sri Lankan format)"
+            name="contact"
+            value={formData.contact || ''}
+            onChange={handleChange}
+            error={errors.contact}
+            placeholder="e.g. +94771234567"
+          />
+
+          <Textarea
+            label="Address"
+            name="address"
+            value={formData.address || ''}
+            onChange={handleChange}
+            error={errors.address}
+            placeholder="Detailed company address..."
+            rows={3}
+          />
+
+          <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
+            <Button type="button" variant="secondary" onClick={() => navigate(getBidderListPath())}>
               Cancel
             </Button>
             <Button type="submit" leftIcon={<Save className="w-4 h-4" />}>
-              Save Supplier
+              {isEdit ? 'Save Changes' : 'Create Supplier'}
             </Button>
           </div>
         </form>

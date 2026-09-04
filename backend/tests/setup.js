@@ -31,7 +31,7 @@ const generateTestToken = (payload = {}) => {
   const defaultPayload = {
     id: crypto.randomUUID(),
     email: 'admin@ceb.lk',
-    epfNumber: 'EPF0001',
+    epfNumber: '10001',
     role: 'Admin',
     ...payload
   };

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Plus } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { DatePicker } from '../components/ui/DatePicker';
+import { Modal } from '../components/ui/Modal';
 import { Record as TmsRecord, Department, CategoryItem, Bidder, BidOpeningCommittee } from '../utils/types';
 import { apiFetch } from '../utils/api';
 
@@ -27,10 +28,33 @@ export function AddEditRecordPage() {
   const [bidders, setBidders] = useState<Bidder[]>([]);
   const [committees, setCommitCommittees] = useState<BidOpeningCommittee[]>([]);
 
+  // Inline Supplier Modal State
+  const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+  const [newSupplier, setNewSupplier] = useState({ name: '', email: '', contact: '', address: '' });
+  const [supplierModalError, setSupplierModalError] = useState<string | null>(null);
+  const [isSavingSupplier, setIsSavingSupplier] = useState(false);
+
+  const getBackPath = () => {
+    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (storedUser) {
+      try {
+        const role = (JSON.parse(storedUser).role || '').toLowerCase().trim();
+        if (role === 'procurement') return '/procurement/records';
+        if (role === 'cecom') return '/cecom/records';
+        if (role === 'clerk') return '/clerk/records';
+      } catch (e) {}
+    }
+    return '/admin/records';
+  };
+
+  const getToken = () => {
+    return localStorage.getItem('authToken') || sessionStorage.getItem('authToken') || localStorage.getItem('mock-auth-token') || sessionStorage.getItem('mock-auth-token');
+  };
+
   useEffect(() => {
     const loadDropdownData = async () => {
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+        const token = getToken();
         const h = { headers: token ? { Authorization: `Bearer ${token}` } : undefined };
         
         const [depRes, catRes, bidderRes, committeeRes] = await Promise.all([
@@ -54,7 +78,7 @@ export function AddEditRecordPage() {
       setIsLoading(true);
       setFetchError(null);
       try {
-        const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+        const token = getToken();
         const res = await apiFetch(`/api/records/${id}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : undefined
         });
@@ -87,14 +111,14 @@ export function AddEditRecordPage() {
 
   const handleCommitteeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const committeeNumber = e.target.value;
-    const committee = committees.find(c => c.committeeNumber === committeeNumber);
+    const committee = committees.find(c => (c.committeeNumber || (c as any).committee_number) === committeeNumber);
     
     setFormData(prev => ({
       ...prev,
       tecCommitteeNumber: committeeNumber,
-      tecChairman: committee?.member1 || '',
-      tecMember1: committee?.member2 || '',
-      tecMember2: committee?.member3 || ''
+      tecChairman: committee?.member1 || (committee as any)?.member1 || '',
+      tecMember1: committee?.member2 || (committee as any)?.member2 || '',
+      tecMember2: committee?.member3 || (committee as any)?.member3 || ''
     }));
 
     if (errors.tecCommitteeNumber) {
@@ -121,7 +145,6 @@ export function AddEditRecordPage() {
     }
   };
 
-  // Enforce mandatory field verification prior to submission
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.tenderNumber) newErrors.tenderNumber = 'Tender Number is required';
@@ -137,7 +160,7 @@ export function AddEditRecordPage() {
     if (validate()) {
       (async () => {
         try {
-          const token = sessionStorage.getItem('authToken') || sessionStorage.getItem('mock-auth-token');
+          const token = getToken();
           const url = isEdit ? `/api/records/${id}` : '/api/records';
           const method = isEdit ? 'PUT' : 'POST';
           const res = await apiFetch(url, {
@@ -153,7 +176,7 @@ export function AddEditRecordPage() {
             alert(err.message || 'Error: Failed to save tender record details.');
             return;
           }
-          navigate('/records');
+          navigate(getBackPath());
         } catch (err) {
           console.error(err);
           alert('Error: Failed to save tender record details.');
@@ -162,16 +185,59 @@ export function AddEditRecordPage() {
     }
   };
 
-  // Map database units and safely append the "Other" option to prevent validation faults
+  // Inline supplier addition handler
+  const handleSaveInlineSupplier = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSupplierModalError(null);
+
+    if (!newSupplier.name.trim()) {
+      setSupplierModalError('Supplier name is required');
+      return;
+    }
+
+    if (newSupplier.contact.trim() && !/^\+94\d{9}$/.test(newSupplier.contact.trim())) {
+      setSupplierModalError('Contact number must be in Sri Lankan +94 format (e.g. +94771234567)');
+      return;
+    }
+
+    setIsSavingSupplier(true);
+    try {
+      const token = getToken();
+      const res = await apiFetch('/api/bidders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {})
+        },
+        body: JSON.stringify(newSupplier)
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ message: 'Failed to create supplier' }));
+        throw new Error(err.message || 'Failed to create supplier');
+      }
+
+      const createdBidder: Bidder = await res.json();
+      setBidders(prev => [...prev, createdBidder]);
+      setFormData(prev => ({ ...prev, awardedTo: createdBidder.name }));
+      setIsSupplierModalOpen(false);
+      setNewSupplier({ name: '', email: '', contact: '', address: '' });
+    } catch (err: any) {
+      setSupplierModalError(err.message || 'Failed to create supplier');
+    } finally {
+      setIsSavingSupplier(false);
+    }
+  };
+
   const departmentOptions = [
-    ...(departments?.filter(d => d.status === 'Active').map(d => ({
+    ...(departments?.filter(d => !d.status || d.status.toLowerCase() === 'active').map(d => ({
       value: d.name,
       label: d.name
     })) || []),
     { value: 'Other', label: 'Other' }
   ];
   
-  const categoryOptions = categories?.filter(c => c.status === 'Active').map(c => ({
+  const categoryOptions = categories?.filter(c => !c.status || c.status.toLowerCase() === 'active').map(c => ({
     value: c.name,
     label: c.name
   })) || [];
@@ -181,10 +247,13 @@ export function AddEditRecordPage() {
     label: b.name
   })) || [];
 
-  const committeeOptions = committees?.filter(c => c.status === 'Active').map(c => ({
-    value: c.committeeNumber,
-    label: c.committeeNumber
-  })) || [];
+  const committeeOptions = (committees || [])
+    .filter(c => !c.status || c.status.toLowerCase() === 'active')
+    .map(c => {
+      const num = c.committeeNumber || (c as any).committee_number || '';
+      return { value: num, label: num };
+    })
+    .filter(opt => opt.value !== '');
 
   const remarkOptions = [
     { value: 'Awarded', label: 'Awarded' },
@@ -216,9 +285,10 @@ export function AddEditRecordPage() {
     );
   }
 
-  return <div className="max-w-5xl mx-auto h-[calc(100vh-140px)] flex flex-col">
+  return (
+    <div className="max-w-5xl mx-auto h-[calc(100vh-140px)] flex flex-col">
       <div className="flex-shrink-0 flex items-center gap-4 mb-6">
-        <button onClick={() => navigate('/records')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(getBackPath())} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
@@ -322,24 +392,37 @@ export function AddEditRecordPage() {
                 </div>
               </div>
 
-              {formData.status === 'Awarded' && formData.delay !== undefined && <div>
+              {formData.status === 'Awarded' && formData.delay !== undefined && (
+                <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">
                     Delay (Days)
                   </label>
                   <div className="flex h-10 w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-600">
                     {formData.delay} days
                   </div>
-                </div>}
+                </div>
+              )}
             </div>
           </div>
 
           {/* Selected Bidder Details */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-6 md:p-8">
-            <h3 className="text-lg font-semibold text-slate-900 mb-6 pb-3 border-b border-slate-100">
-              Selected Bidder Details
-            </h3>
+            <div className="flex items-center justify-between mb-6 pb-3 border-b border-slate-100">
+              <h3 className="text-lg font-semibold text-slate-900">
+                Selected Bidder Details
+              </h3>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => setIsSupplierModalOpen(true)}
+                leftIcon={<Plus className="w-4 h-4" />}
+                className="text-xs py-1.5"
+              >
+                Add New Supplier
+              </Button>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Select label="Awarded To" name="awardedTo" value={formData.awardedTo || ''} onChange={handleChange} options={bidderOptions} />
+              <Select label="Awarded To (Supplier)" name="awardedTo" value={formData.awardedTo || ''} onChange={handleChange} options={bidderOptions} />
 
               <div></div>
 
@@ -368,7 +451,7 @@ export function AddEditRecordPage() {
 
           {/* Form Actions - Sticky Footer */}
           <div className="sticky bottom-0 z-30 mt-8 flex items-center justify-end gap-4 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 p-6 ring-1 ring-slate-100">
-            <Button type="button" variant="secondary" onClick={() => navigate('/records')}>
+            <Button type="button" variant="secondary" onClick={() => navigate(getBackPath())}>
               Cancel
             </Button>
             <Button type="submit" form="recordForm" leftIcon={<Save className="w-4 h-4" />}>
@@ -377,5 +460,74 @@ export function AddEditRecordPage() {
           </div>
         </form>
       </div>
-    </div>;
+
+      {/* Quick-Add Supplier Modal */}
+      <Modal
+        isOpen={isSupplierModalOpen}
+        onClose={() => {
+          setIsSupplierModalOpen(false);
+          setSupplierModalError(null);
+          setNewSupplier({ name: '', email: '', contact: '', address: '' });
+        }}
+        title="Add New Supplier"
+        footer={
+          <div className="flex gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => {
+                setIsSupplierModalOpen(false);
+                setSupplierModalError(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleSaveInlineSupplier}
+              isLoading={isSavingSupplier}
+              leftIcon={<Save className="w-4 h-4" />}
+            >
+              Save Supplier
+            </Button>
+          </div>
+        }
+      >
+        <form onSubmit={handleSaveInlineSupplier} className="space-y-4">
+          {supplierModalError && (
+            <div className="p-3 bg-red-50 border border-red-200 text-red-600 rounded-md text-sm">
+              {supplierModalError}
+            </div>
+          )}
+          <Input
+            label="Supplier / Company Name"
+            value={newSupplier.name}
+            onChange={e => setNewSupplier(prev => ({ ...prev, name: e.target.value }))}
+            placeholder="e.g. Lanka Electrical Co."
+            required
+          />
+          <Input
+            label="Email Address"
+            type="email"
+            value={newSupplier.email}
+            onChange={e => setNewSupplier(prev => ({ ...prev, email: e.target.value }))}
+            placeholder="e.g. info@lankaelectrical.lk"
+          />
+          <Input
+            label="Contact Number (+94 format)"
+            value={newSupplier.contact}
+            onChange={e => setNewSupplier(prev => ({ ...prev, contact: e.target.value }))}
+            placeholder="e.g. +94771234567"
+          />
+          <Textarea
+            label="Address"
+            value={newSupplier.address}
+            onChange={e => setNewSupplier(prev => ({ ...prev, address: e.target.value }))}
+            placeholder="Supplier address..."
+            rows={2}
+          />
+        </form>
+      </Modal>
+    </div>
+  );
 }
