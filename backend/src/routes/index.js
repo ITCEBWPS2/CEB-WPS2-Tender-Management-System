@@ -10,5 +10,6 @@ router.use('/departments', require('./departments'));
 router.use('/committees', require('./committees'));
 router.use('/users', require('./users'));
 router.use('/audits', require('./audits'));
+router.use('/notifications', require('./notifications'));
 
 module.exports = router;

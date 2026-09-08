@@ -7,6 +7,7 @@ import Joi from 'joi';
 
 import supabase from './config/supabase.js';
 import AuditLog from './utils/auditLogger.js';
+import { runDeadlineReminderCheck } from './jobs/deadlineReminders.js';
 
 const app = new Hono();
 const STORAGE_BUCKET = 'record-documents';
@@ -1535,6 +1536,58 @@ audits.get('/:id', protect, authorize('Admin'), async (c) => {
 app.route('/api/audits', audits);
 
 // ---------------------------------------------------------------------------
+// 9. NOTIFICATIONS RESOURCE (/api/notifications)
+// ---------------------------------------------------------------------------
+
+const notifications = new Hono();
+
+notifications.get('/', protect, authorize('Admin', 'Super Admin'), async (c) => {
+  const { data, error } = await supabase
+    .from('notification_log')
+    .select(`
+      *,
+      records:record_id (
+        tender_number,
+        category,
+        description,
+        bid_closing_date
+      )
+    `)
+    .order('sent_at', { ascending: false })
+    .limit(500);
+
+  if (error) throw error;
+
+  const mapped = (data || []).map(item => ({
+    id: item.id,
+    recordId: item.record_id,
+    notificationType: item.notification_type,
+    recipientEmail: item.recipient_email,
+    recipientRole: item.recipient_role,
+    status: item.status,
+    errorMessage: item.error_message,
+    sentAt: item.sent_at,
+    tenderNumber: item.records?.tender_number || 'N/A',
+    category: item.records?.category || '-',
+    bidClosingDate: item.records?.bid_closing_date || null
+  }));
+
+  return c.json(mapped);
+});
+
+notifications.post('/test-run', protect, authorize('Admin', 'Super Admin'), async (c) => {
+  try {
+    const summary = await runDeadlineReminderCheck(c.env);
+    return c.json(summary);
+  } catch (err) {
+    console.error('Manual test-run trigger error:', err);
+    return c.json({ message: err.message || 'Failed to execute test run' }, 500);
+  }
+});
+
+app.route('/api/notifications', notifications);
+
+// ---------------------------------------------------------------------------
 // Fallback Route
 // ---------------------------------------------------------------------------
 
@@ -1542,4 +1595,17 @@ app.all('*', (c) => {
   return c.json({ message: 'Route not implemented in Hono worker yet' }, 501);
 });
 
-export default app;
+export default {
+  fetch: app.fetch,
+  async scheduled(event, env, ctx) {
+    console.log(`Cron trigger fired at ${new Date().toISOString()} (cron: ${event.cron})`);
+    ctx.waitUntil((async () => {
+      try {
+        const summary = await runDeadlineReminderCheck(env);
+        console.log('Cron Deadline Reminder Summary:', JSON.stringify(summary, null, 2));
+      } catch (err) {
+        console.error('Cron Deadline Reminder Error:', err);
+      }
+    })());
+  }
+};

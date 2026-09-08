@@ -27,6 +27,7 @@ import { AddEditCommitteePage } from './pages/AddEditCommitteePage';
 import { UserManagementPage } from './pages/UserManagementPage';
 import { AddEditUserPage } from './pages/AddEditUserPage';
 import { AuditLogPage } from './pages/AuditLogPage';
+import { NotificationLogPage } from './pages/NotificationLogPage';
 
 // Component to handle root / and un-prefixed redirects to role home route
 function RootRedirect() {
@@ -74,6 +75,7 @@ export function App() {
             <Route path="/admin/users/add" element={<AddEditUserPage />} />
             <Route path="/admin/users/edit/:id" element={<AddEditUserPage />} />
             <Route path="/admin/audit-log" element={<AuditLogPage />} />
+            <Route path="/admin/notifications" element={<NotificationLogPage />} />
             <Route path="/admin/export" element={<ExportPage />} />
           </Route>
 

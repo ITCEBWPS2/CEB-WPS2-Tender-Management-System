@@ -1,5 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, FileText, Plus, Users, UserPlus, Building2, Download, LogOut, Menu, FolderOpen, Briefcase, Gavel, Shield, FileSearch } from 'lucide-react';
+import { LayoutDashboard, FileText, Plus, Users, UserPlus, Building2, Download, LogOut, Menu, FolderOpen, Briefcase, Gavel, Shield, FileSearch, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 
 interface SidebarProps {
@@ -146,6 +146,11 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     title: 'Audit Log',
     path: `${prefix}/audit-log`,
     icon: <FileSearch className="w-5 h-5" />,
+    allowedRoles: ['Admin', 'Super Admin', 'CECOM']
+  }, {
+    title: 'Notification Log',
+    path: `${prefix}/notifications`,
+    icon: <Bell className="w-5 h-5" />,
     allowedRoles: ['Admin', 'Super Admin', 'CECOM']
   }, {
     title: 'Export',
