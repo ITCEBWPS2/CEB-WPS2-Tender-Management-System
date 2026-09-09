@@ -1,4 +1,16 @@
 const request = require('supertest');
+
+jest.mock('../src/config/supabase', () => ({
+  from: jest.fn(() => ({
+    select: jest.fn(() => ({
+      order: jest.fn().mockResolvedValue({
+        data: [{ id: '1', name: 'Test Admin', email: 'admin@ceb.lk', role: 'Admin', status: 'Active' }],
+        error: null
+      })
+    }))
+  }))
+}));
+
 const { setupDatabase, createTestApp, generateTestToken } = require('./setup');
 
 describe('Role Authorization', () => {
@@ -31,11 +43,22 @@ describe('Role Authorization', () => {
     });
 
     it('should allow access with 200 when authenticated as Admin role', async () => {
-      const adminToken = generateTestToken({ role: 'Admin', email: 'superadmin@ceb.lk' });
+      const adminToken = generateTestToken({ role: 'Admin', email: 'admin@ceb.lk' });
 
       const res = await request(app)
         .get('/api/users')
         .set('Authorization', `Bearer ${adminToken}`);
+
+      expect(res.status).toBe(200);
+      expect(Array.isArray(res.body)).toBe(true);
+    });
+
+    it('should allow access with 200 when authenticated as Super Admin role', async () => {
+      const superAdminToken = generateTestToken({ role: 'Super Admin', email: 'superadmin@ceb.lk' });
+
+      const res = await request(app)
+        .get('/api/users')
+        .set('Authorization', `Bearer ${superAdminToken}`);
 
       expect(res.status).toBe(200);
       expect(Array.isArray(res.body)).toBe(true);

@@ -1,6 +1,7 @@
 const path = require('path');
 const supabase = require('../config/supabase');
 const AuditLog = require('../utils/auditLogger');
+const { handleRecordTransitions } = require('../utils/recordNotificationTriggers');
 
 const STORAGE_BUCKET = 'record-documents';
 
@@ -161,6 +162,8 @@ exports.create = async (req, res, next) => {
       message: `Created record ${item.tenderNumber}` 
     }).catch(err => console.error('AuditLog error:', err));
 
+    await handleRecordTransitions({ env: process.env, supabase, previousRecord: null, updatedRecord: data }).catch(err => console.error(err));
+
     res.status(201).json(item);
   } catch (err) {
     if (err.code === '23505') {
@@ -190,6 +193,12 @@ exports.get = async (req, res, next) => {
 
 exports.update = async (req, res, next) => {
   try {
+    const { data: previousRecord } = await supabase
+      .from('records')
+      .select('*')
+      .eq('id', req.params.id)
+      .maybeSingle();
+
     const updates = mapRecordInput(req.body);
 
     const { data: updated, error } = await supabase
@@ -216,6 +225,8 @@ exports.update = async (req, res, next) => {
       type: 'update:record', 
       message: `Updated record ${item.tenderNumber}` 
     }).catch(err => console.error('AuditLog error:', err));
+
+    await handleRecordTransitions({ env: process.env, supabase, previousRecord, updatedRecord: updated }).catch(err => console.error(err));
 
     res.json(item);
   } catch (err) {

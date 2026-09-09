@@ -176,6 +176,9 @@ export function AddEditUserPage() {
           />
 
           <Select label="Role" name="role" value={formData.role || 'Admin'} onChange={handleChange} error={errors.role} options={[{
+            value: 'Super Admin',
+            label: 'Super Admin'
+          }, {
             value: 'Admin',
             label: 'Admin'
           }, {

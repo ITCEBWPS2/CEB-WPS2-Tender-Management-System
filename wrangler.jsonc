@@ -20,7 +20,10 @@
   ],
   "triggers": {
     "crons": [
-      "30 19 * * *"
+      "30 2 * * *"
     ]
+  },
+  "define": {
+    "import.meta.url": "\"https://workers.cloudflare.com/worker.js\""
   }
 }

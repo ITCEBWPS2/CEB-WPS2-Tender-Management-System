@@ -1,5 +1,6 @@
 const supabase = require('../config/supabase');
 const { runDeadlineReminderCheck } = require('../jobs/deadlineReminders');
+const { runDelayReminderCheck } = require('../jobs/delayReminders');
 
 exports.getNotificationLogs = async (req, res, next) => {
   try {
@@ -41,7 +42,20 @@ exports.getNotificationLogs = async (req, res, next) => {
 
 exports.runTestCheck = async (req, res, next) => {
   try {
-    const summary = await runDeadlineReminderCheck(process.env);
+    const deadlineSummary = await runDeadlineReminderCheck(process.env);
+    const delaySummary = await runDelayReminderCheck(process.env);
+    res.json({
+      deadlineReminders: deadlineSummary,
+      delayReminders: delaySummary
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+exports.runDelayTestCheck = async (req, res, next) => {
+  try {
+    const summary = await runDelayReminderCheck(process.env);
     res.json(summary);
   } catch (err) {
     next(err);

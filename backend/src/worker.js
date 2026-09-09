@@ -8,6 +8,8 @@ import Joi from 'joi';
 import supabase from './config/supabase.js';
 import AuditLog from './utils/auditLogger.js';
 import { runDeadlineReminderCheck } from './jobs/deadlineReminders.js';
+import { runDelayReminderCheck } from './jobs/delayReminders.js';
+import { handleRecordTransitions } from './utils/recordNotificationTriggers.js';
 
 const app = new Hono();
 const STORAGE_BUCKET = 'record-documents';
@@ -305,7 +307,7 @@ const updateUserSchema = Joi.object({
 
 const users = new Hono();
 
-users.get('/', protect, authorize('Admin'), async (c) => {
+users.get('/', protect, authorize('Admin', 'Super Admin'), async (c) => {
   const { data, error } = await supabase
     .from('users')
     .select(SELECT_SAFE_USER_FIELDS)
@@ -315,7 +317,7 @@ users.get('/', protect, authorize('Admin'), async (c) => {
   return c.json((data || []).map(formatUser));
 });
 
-users.post('/', protect, authorize('Admin'), validateBody(createUserSchema), async (c) => {
+users.post('/', protect, authorize('Admin', 'Super Admin'), validateBody(createUserSchema), async (c) => {
   const body = c.get('parsedBody');
   const currentUser = c.get('user');
 
@@ -356,7 +358,7 @@ users.post('/', protect, authorize('Admin'), validateBody(createUserSchema), asy
   return c.json(item, 201);
 });
 
-users.get('/:id', protect, authorize('Admin'), async (c) => {
+users.get('/:id', protect, authorize('Admin', 'Super Admin'), async (c) => {
   const id = c.req.param('id');
   const { data, error } = await supabase.from('users').select(SELECT_SAFE_USER_FIELDS).eq('id', id).maybeSingle();
   if (error) throw error;
@@ -364,7 +366,7 @@ users.get('/:id', protect, authorize('Admin'), async (c) => {
   return c.json(formatUser(data));
 });
 
-users.put('/:id', protect, authorize('Admin'), validateBody(updateUserSchema), async (c) => {
+users.put('/:id', protect, authorize('Admin', 'Super Admin'), validateBody(updateUserSchema), async (c) => {
   const id = c.req.param('id');
   const body = c.get('parsedBody');
   const currentUser = c.get('user');
@@ -411,7 +413,7 @@ users.put('/:id', protect, authorize('Admin'), validateBody(updateUserSchema), a
   return c.json(item);
 });
 
-users.delete('/:id', protect, authorize('Admin'), async (c) => {
+users.delete('/:id', protect, authorize('Admin', 'Super Admin'), async (c) => {
   const id = c.req.param('id');
   const currentUser = c.get('user');
 
@@ -1249,6 +1251,7 @@ records.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateB
 
   const item = formatRecord(data, []);
   await AuditLog.create({ user: user?.email, type: 'create:record', message: `Created tender record ${item.tenderNumber}` }).catch(err => console.error(err));
+  await handleRecordTransitions({ env: c.env, supabase, previousRecord: null, updatedRecord: data }).catch(err => console.error(err));
   return c.json(item, 201);
 });
 
@@ -1267,6 +1270,9 @@ records.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validat
   const body = c.get('parsedBody');
   const user = c.get('user');
 
+  // Fetch previous record state before updating to check for status/committee transitions
+  const { data: previousRecord } = await supabase.from('records').select('*').eq('id', id).maybeSingle();
+
   const updates = mapRecordInput(body);
   const { data: updated, error } = await supabase.from('records').update(updates).eq('id', id).select().maybeSingle();
   if (error) {
@@ -1278,6 +1284,10 @@ records.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validat
   const docs = await getDocumentsForRecord(updated.id);
   const item = formatRecord(updated, docs);
   await AuditLog.create({ user: user?.email, type: 'update:record', message: `Updated tender record ${item.tenderNumber}` }).catch(err => console.error(err));
+
+  // Trigger notifications on award, TEC appointment, or completion transitions
+  await handleRecordTransitions({ env: c.env, supabase, previousRecord, updatedRecord: updated }).catch(err => console.error(err));
+
   return c.json(item);
 });
 
@@ -1577,11 +1587,25 @@ notifications.get('/', protect, authorize('Admin', 'Super Admin'), async (c) => 
 
 notifications.post('/test-run', protect, authorize('Admin', 'Super Admin'), async (c) => {
   try {
-    const summary = await runDeadlineReminderCheck(c.env);
-    return c.json(summary);
+    const deadlineSummary = await runDeadlineReminderCheck(c.env);
+    const delaySummary = await runDelayReminderCheck(c.env);
+    return c.json({
+      deadlineReminders: deadlineSummary,
+      delayReminders: delaySummary
+    });
   } catch (err) {
     console.error('Manual test-run trigger error:', err);
     return c.json({ message: err.message || 'Failed to execute test run' }, 500);
+  }
+});
+
+notifications.post('/test-run-delays', protect, authorize('Admin', 'Super Admin'), async (c) => {
+  try {
+    const summary = await runDelayReminderCheck(c.env);
+    return c.json(summary);
+  } catch (err) {
+    console.error('Manual test-run delays error:', err);
+    return c.json({ message: err.message || 'Failed to execute delay reminders test run' }, 500);
   }
 });
 
@@ -1601,10 +1625,17 @@ export default {
     console.log(`Cron trigger fired at ${new Date().toISOString()} (cron: ${event.cron})`);
     ctx.waitUntil((async () => {
       try {
-        const summary = await runDeadlineReminderCheck(env);
-        console.log('Cron Deadline Reminder Summary:', JSON.stringify(summary, null, 2));
+        const deadlineSummary = await runDeadlineReminderCheck(env);
+        console.log('Cron Deadline Reminder Summary:', JSON.stringify(deadlineSummary, null, 2));
       } catch (err) {
         console.error('Cron Deadline Reminder Error:', err);
+      }
+
+      try {
+        const delaySummary = await runDelayReminderCheck(env);
+        console.log('Cron Delay Reminder Summary:', JSON.stringify(delaySummary, null, 2));
+      } catch (err) {
+        console.error('Cron Delay Reminder Error:', err);
       }
     })());
   }
