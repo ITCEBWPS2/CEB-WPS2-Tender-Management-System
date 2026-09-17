@@ -3,11 +3,15 @@ import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi } from 'vitest';
 import { LoginPage } from '../pages/LoginPage';
 
+import { AuthProvider } from '../context/AuthContext';
+
 describe('LoginPage Smoke Test', () => {
   it('renders login page cleanly without crashing', () => {
     render(
       <MemoryRouter>
-        <LoginPage />
+        <AuthProvider>
+          <LoginPage />
+        </AuthProvider>
       </MemoryRouter>
     );
 

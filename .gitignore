@@ -16,6 +16,7 @@ pnpm-debug.log*
 .env.development
 .env.test
 .env.production
+!frontend/.env.production
 
 # =========================
 # Build Outputs
