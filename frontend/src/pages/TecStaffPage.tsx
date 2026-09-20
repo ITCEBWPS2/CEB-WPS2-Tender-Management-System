@@ -6,9 +6,11 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Staff } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useRolePath } from '../utils/rolePath';
 
 export function TecStaffPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -63,9 +65,10 @@ export function TecStaffPage() {
     accessorKey: 'name' as keyof Staff
   }, {
     header: 'Email',
-    accessorKey: 'email' as keyof Staff
+    accessorKey: 'email' as keyof Staff,
+    cell: (item: Staff) => item.email || '-'
   }, {
-    header: 'Department/Area',
+    header: 'Unit',
     accessorKey: 'area' as keyof Staff
   }, {
     header: 'Designation',
@@ -74,7 +77,7 @@ export function TecStaffPage() {
     header: 'Actions',
     accessorKey: 'id' as keyof Staff,
     cell: (item: Staff) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(`/tec-staff/edit/${item.id}`)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors">
+          <button onClick={() => navigate(path(`/tec-staff/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors">
             <Edit2 className="w-4 h-4" />
           </button>
           <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors">
@@ -85,10 +88,10 @@ export function TecStaffPage() {
   return <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-slate-900">TEC Staff</h2>
+          <h2 className="text-2xl font-bold text-slate-900">Staff</h2>
           <p className="text-slate-500">Manage committee members and staff</p>
         </div>
-        <Button onClick={() => navigate('/tec-staff/add')} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button onClick={() => navigate(path('/tec-staff/add'))} leftIcon={<Plus className="w-4 h-4" />}>
           Add Staff Member
         </Button>
       </div>

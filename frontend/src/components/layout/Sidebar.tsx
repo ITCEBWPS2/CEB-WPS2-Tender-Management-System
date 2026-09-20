@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, FileText, Plus, Users, UserPlus, Building2, Download, LogOut, Menu, FolderOpen, Briefcase, Gavel, Shield, FileSearch, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useRolePath } from '../../utils/rolePath';
 
 interface SidebarProps {
   isOpen: boolean;  
@@ -10,18 +11,9 @@ interface SidebarProps {
 export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { prefix } = useRolePath();
 
   const userRole = (user?.role || '').toLowerCase().trim();
-
-  const getRolePrefix = (): string => {
-    if (userRole === 'super admin' || userRole === 'admin') return '/admin';
-    if (userRole === 'procurement') return '/procurement';
-    if (userRole === 'cecom') return '/cecom';
-    if (userRole === 'clerk') return '/clerk';
-    return '/admin';
-  };
-
-  const prefix = getRolePrefix();
 
   const hasRoleAccess = (allowed: string[] | undefined) => {
     if (!allowed) return true; 
@@ -84,7 +76,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
     }]
   }, {
-    title: 'TEC Staff',
+    title: 'Staff',
     path: `${prefix}/tec-staff`,
     icon: <Users className="w-5 h-5" />,
     allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'], 

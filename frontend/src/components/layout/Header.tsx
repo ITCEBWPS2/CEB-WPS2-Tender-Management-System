@@ -19,7 +19,7 @@ export function Header({ onMenuClick }: HeaderProps) {
     if (path.includes('/records')) return 'Records Management';
     if (path.includes('/categories')) return 'Category Management';
     if (path.includes('/departments')) return 'Department Management';
-    if (path.includes('/tec-staff')) return 'TEC Staff';
+    if (path.includes('/tec-staff')) return 'Staff';
     if (path.includes('/bidders')) return 'Supplier Management';
     if (path.includes('/bid-opening')) return 'TEC Committee';
     if (path.includes('/users')) return 'User Management';

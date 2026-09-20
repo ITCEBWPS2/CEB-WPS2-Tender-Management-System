@@ -734,7 +734,7 @@ staff.post('/', protect, authorize('Admin', 'CECOM'), validateBody(createStaffSc
   const departmentId = extractDepartmentId(body);
   const insertData = {
     name: body.name || null,
-    email: body.email || null,
+    email: body.email && typeof body.email === 'string' && body.email.trim() !== '' ? body.email.trim() : null,
     area: body.area || null,
     designation: body.designation || null,
     department_id: departmentId
@@ -766,7 +766,9 @@ staff.put('/:id', protect, authorize('Admin', 'CECOM'), validateBody(updateStaff
 
   const updates = {};
   if (body.name !== undefined) updates.name = body.name;
-  if (body.email !== undefined) updates.email = body.email;
+  if (body.email !== undefined) {
+    updates.email = body.email && typeof body.email === 'string' && body.email.trim() !== '' ? body.email.trim() : null;
+  }
   if (body.area !== undefined) updates.area = body.area;
   if (body.designation !== undefined) updates.designation = body.designation;
 

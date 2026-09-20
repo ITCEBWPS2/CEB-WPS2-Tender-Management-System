@@ -109,6 +109,8 @@ async function runDeadlineReminderCheck(env = {}, supabaseOverride = null) {
 
       // 3. Send email to each recipient & write row into notification_log
       for (const recipient of recipients) {
+        if (!recipient || !recipient.email || !recipient.email.trim()) continue;
+
         const sendResult = await sendDeadlineReminderEmail({
           resendApiKey,
           frontendUrl,
