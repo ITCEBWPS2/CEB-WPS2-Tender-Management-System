@@ -27,7 +27,7 @@ describe('Role-based access & Clerk restrictions', () => {
       render(
         <MemoryRouter>
           <AuthProvider>
-            <Sidebar isOpen={true} setIsOpen={() => {}} />
+            <Sidebar isOpen={true} setIsOpen={() => { /* noop */ }} />
           </AuthProvider>
         </MemoryRouter>
       );
@@ -63,7 +63,7 @@ describe('Role-based access & Clerk restrictions', () => {
       render(
         <MemoryRouter>
           <AuthProvider>
-            <Sidebar isOpen={true} setIsOpen={() => {}} />
+            <Sidebar isOpen={true} setIsOpen={() => { /* noop */ }} />
           </AuthProvider>
         </MemoryRouter>
       );
@@ -79,7 +79,7 @@ describe('Role-based access & Clerk restrictions', () => {
       render(
         <MemoryRouter>
           <AuthProvider>
-            <Sidebar isOpen={true} setIsOpen={() => {}} />
+            <Sidebar isOpen={true} setIsOpen={() => { /* noop */ }} />
           </AuthProvider>
         </MemoryRouter>
       );

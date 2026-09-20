@@ -141,7 +141,7 @@ export function UserManagementPage() {
           </p>
         </div>
         <Button onClick={() => navigate(path('/users/add'))} leftIcon={<Plus className="w-4 h-4" />}>
-          Add New User
+          Add New System User
         </Button>
       </div>
 

@@ -38,16 +38,14 @@ function RootRedirect() {
   return <Navigate to={getRoleHomeRoute(user.role)} replace />;
 }
 
-export function App() {
+export function AppRoutes() {
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
+    <Routes>
+      <Route path="/login" element={<LoginPage />} />
+      <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          {/* Root & un-prefixed fallback redirect */}
-          <Route path="/" element={<RootRedirect />} />
+      {/* Root & un-prefixed fallback redirect */}
+      <Route path="/" element={<RootRedirect />} />
 
           {/* 1. ADMIN SHELL (/admin/*) -> Admin & Super Admin roles */}
           <Route element={<ProtectedRoute allowedRoles={['Admin', 'Super Admin']} />}>
@@ -155,6 +153,14 @@ export function App() {
           {/* Fallback route */}
           <Route path="*" element={<RootRedirect />} />
         </Routes>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <Router>
+        <AppRoutes />
       </Router>
     </AuthProvider>
   );
