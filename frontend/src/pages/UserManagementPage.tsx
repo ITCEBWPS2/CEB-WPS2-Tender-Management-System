@@ -8,10 +8,11 @@ import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { SystemUser } from '../utils/types';
 import { apiFetch } from '../utils/api';
-
+import { useRolePath } from '../utils/rolePath';
 
 export function UserManagementPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
   const [users, setUsers] = useState<SystemUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -122,7 +123,7 @@ export function UserManagementPage() {
     header: 'Actions',
     accessorKey: 'id' as keyof SystemUser,
     cell: (item: SystemUser) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(`/users/edit/${item.id}`)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+          <button onClick={() => navigate(path(`/users/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
             <Edit2 className="w-4 h-4" />
           </button>
           <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
@@ -139,7 +140,7 @@ export function UserManagementPage() {
             Manage system users and access control
           </p>
         </div>
-        <Button onClick={() => navigate('/users/add')} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button onClick={() => navigate(path('/users/add'))} leftIcon={<Plus className="w-4 h-4" />}>
           Add New User
         </Button>
       </div>

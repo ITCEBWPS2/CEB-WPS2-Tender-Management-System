@@ -109,7 +109,7 @@ export function CecomDashboard() {
     {
       header: 'Actions',
       accessorKey: ((item: CommitteeWorkload) => item.id) as any,
-      cell: (item: CommitteeWorkload) => (
+      cell: () => (
         <button
           onClick={() => navigate('/cecom/bid-opening')}
           className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors flex items-center gap-1 text-xs font-medium"

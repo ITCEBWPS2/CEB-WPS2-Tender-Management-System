@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, FileText, Plus, Users, UserPlus, Building2, Download, LogOut, Menu, FolderOpen, Briefcase, Gavel, Shield, FileSearch, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
+import { useRolePath } from '../../utils/rolePath';
 
 interface SidebarProps {
   isOpen: boolean;  
@@ -10,22 +11,15 @@ interface SidebarProps {
 export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const navigate = useNavigate();
   const { user, logout } = useAuth();
+  const { prefix } = useRolePath();
 
   const userRole = (user?.role || '').toLowerCase().trim();
-
-  const getRolePrefix = (): string => {
-    if (userRole === 'super admin' || userRole === 'admin') return '/admin';
-    if (userRole === 'procurement') return '/procurement';
-    if (userRole === 'cecom') return '/cecom';
-    if (userRole === 'clerk') return '/clerk';
-    return '/admin';
-  };
-
-  const prefix = getRolePrefix();
+  const effectiveRole = userRole === 'super admin' ? 'admin' : userRole;
 
   const hasRoleAccess = (allowed: string[] | undefined) => {
     if (!allowed) return true; 
-    return allowed.map(r => r.toLowerCase().trim()).includes(userRole);
+    const allowedClean = allowed.map(r => r.toLowerCase().trim());
+    return allowedClean.includes(userRole) || allowedClean.includes(effectiveRole);
   };
 
   const handleLogout = () => {
@@ -51,7 +45,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Record',
       path: `${prefix}/records/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
     title: 'Categories',
@@ -66,7 +60,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Category',
       path: `${prefix}/categories/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
     title: 'Units',
@@ -81,10 +75,10 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Unit',
       path: `${prefix}/departments/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
-    title: 'TEC Staff',
+    title: 'Staff',
     path: `${prefix}/tec-staff`,
     icon: <Users className="w-5 h-5" />,
     allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'], 
@@ -96,7 +90,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Staff',
       path: `${prefix}/tec-staff/add`,
       icon: <UserPlus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'CECOM']
     }]
   }, {
     title: 'Bidders',
@@ -111,7 +105,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Supplier',
       path: `${prefix}/bidders/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
     title: 'TEC Committee',
@@ -126,13 +120,13 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Committee',
       path: `${prefix}/bid-opening/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
     title: 'User Management',
     path: `${prefix}/users`,
     icon: <Shield className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'CECOM'],
+    allowedRoles: ['Admin', 'Super Admin'],
     subItems: [{
       title: 'All Users',
       path: `${prefix}/users`,
@@ -146,12 +140,12 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     title: 'Audit Log',
     path: `${prefix}/audit-log`,
     icon: <FileSearch className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'CECOM']
+    allowedRoles: ['Admin', 'Super Admin']
   }, {
     title: 'Notification Log',
     path: `${prefix}/notifications`,
     icon: <Bell className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'CECOM']
+    allowedRoles: ['Admin', 'Super Admin']
   }, {
     title: 'Export',
     path: `${prefix}/export`,

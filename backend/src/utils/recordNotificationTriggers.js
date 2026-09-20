@@ -40,6 +40,8 @@ async function triggerAwardNotification({ env = {}, supabase, record }) {
   const results = [];
 
   for (const recipient of recipients) {
+    if (!recipient || !recipient.email || !recipient.email.trim()) continue;
+
     const sendResult = await sendAwardNotificationEmail({
       resendApiKey,
       frontendUrl,
@@ -107,6 +109,8 @@ async function triggerTecAppointmentNotification({ env = {}, supabase, record })
   const results = [];
 
   for (const recipient of recipients) {
+    if (!recipient || !recipient.email || !recipient.email.trim()) continue;
+
     const sendResult = await sendTecAppointmentNotificationEmail({
       resendApiKey,
       frontendUrl,
@@ -174,6 +178,8 @@ async function triggerCompletionNotification({ env = {}, supabase, record }) {
   const results = [];
 
   for (const recipient of recipients) {
+    if (!recipient || !recipient.email || !recipient.email.trim()) continue;
+
     const sendResult = await sendCompletionAlertEmail({
       resendApiKey,
       frontendUrl,

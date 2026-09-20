@@ -99,7 +99,7 @@ export function ProcurementDashboard() {
         if (s === 'Awarded') colorClass = 'bg-green-100 text-green-800';
         else if (s.includes('Evaluation')) colorClass = 'bg-blue-100 text-blue-800';
         else if (s === 'Retender') colorClass = 'bg-orange-100 text-orange-800';
-        else if (s === 'Reject' || s === 'Rejected') colorClass = 'bg-red-100 text-red-800';
+        else if (s === 'Reject' || (s as string) === 'Rejected') colorClass = 'bg-red-100 text-red-800';
         return (
           <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${colorClass}`}>
             {s}

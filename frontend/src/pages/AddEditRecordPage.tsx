@@ -9,9 +9,11 @@ import { DatePicker } from '../components/ui/DatePicker';
 import { Modal } from '../components/ui/Modal';
 import { Record as TmsRecord, Department, CategoryItem, Bidder, BidOpeningCommittee } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useRolePath } from '../utils/rolePath';
 
 export function AddEditRecordPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
   const { id } = useParams();
   const isEdit = !!id;
   
@@ -33,19 +35,6 @@ export function AddEditRecordPage() {
   const [newSupplier, setNewSupplier] = useState({ name: '', email: '', contact: '', address: '' });
   const [supplierModalError, setSupplierModalError] = useState<string | null>(null);
   const [isSavingSupplier, setIsSavingSupplier] = useState(false);
-
-  const getBackPath = () => {
-    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const role = (JSON.parse(storedUser).role || '').toLowerCase().trim();
-        if (role === 'procurement') return '/procurement/records';
-        if (role === 'cecom') return '/cecom/records';
-        if (role === 'clerk') return '/clerk/records';
-      } catch (e) {}
-    }
-    return '/admin/records';
-  };
 
   useEffect(() => {
     const loadDropdownData = async () => {
@@ -162,7 +151,7 @@ export function AddEditRecordPage() {
             alert(err.message || 'Error: Failed to save tender record details.');
             return;
           }
-          navigate(getBackPath());
+          navigate(path('/records'));
         } catch (err) {
           console.error(err);
           alert('Error: Failed to save tender record details.');
@@ -270,7 +259,7 @@ export function AddEditRecordPage() {
   return (
     <div className="max-w-5xl mx-auto h-[calc(100vh-140px)] flex flex-col">
       <div className="flex-shrink-0 flex items-center gap-4 mb-6">
-        <button onClick={() => navigate(getBackPath())} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(path('/records'))} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
@@ -433,7 +422,7 @@ export function AddEditRecordPage() {
 
           {/* Form Actions - Sticky Footer */}
           <div className="sticky bottom-0 z-30 mt-8 flex items-center justify-end gap-4 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 p-6 ring-1 ring-slate-100">
-            <Button type="button" variant="secondary" onClick={() => navigate(getBackPath())}>
+            <Button type="button" variant="secondary" onClick={() => navigate(path('/records'))}>
               Cancel
             </Button>
             <Button type="submit" form="recordForm" leftIcon={<Save className="w-4 h-4" />}>

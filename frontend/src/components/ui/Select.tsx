@@ -17,6 +17,7 @@ export function Select({
   ...props
 }: SelectProps) {
   const selectId = id || props.name;
+  const hasEmptyOption = options.some(option => option.value === '');
   return <div className="w-full">
       {label && <label htmlFor={selectId} className="block text-sm font-medium text-slate-700 mb-1">
           {label}
@@ -27,9 +28,11 @@ export function Select({
           ${error ? 'border-red-500 focus:ring-red-500' : ''}
           ${className}
         `} {...props}>
-        <option value="" disabled>
-          Select an option
-        </option>
+        {!hasEmptyOption && (
+          <option value="" disabled>
+            Select an option
+          </option>
+        )}
         {options.map(option => <option key={option.value} value={option.value}>
             {option.label}
           </option>)}

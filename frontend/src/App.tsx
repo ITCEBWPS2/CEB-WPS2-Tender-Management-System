@@ -124,10 +124,6 @@ export function App() {
             <Route path="/cecom/bid-opening" element={<BidOpeningCommitteePage />} />
             <Route path="/cecom/bid-opening/add" element={<AddEditCommitteePage />} />
             <Route path="/cecom/bid-opening/edit/:id" element={<AddEditCommitteePage />} />
-            <Route path="/cecom/users" element={<UserManagementPage />} />
-            <Route path="/cecom/users/add" element={<AddEditUserPage />} />
-            <Route path="/cecom/users/edit/:id" element={<AddEditUserPage />} />
-            <Route path="/cecom/audit-log" element={<AuditLogPage />} />
             <Route path="/cecom/export" element={<ExportPage />} />
           </Route>
 

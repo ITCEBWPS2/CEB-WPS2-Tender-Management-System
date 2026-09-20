@@ -121,6 +121,8 @@ async function runDelayReminderCheck(env = {}, supabaseOverride = null) {
 
       // 3. Send email to each recipient & write row into notification_log
       for (const recipient of recipients) {
+        if (!recipient || !recipient.email || !recipient.email.trim()) continue;
+
         const sendResult = await sendDelayReminderEmail({
           resendApiKey,
           frontendUrl,

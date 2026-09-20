@@ -6,9 +6,11 @@ import { Input } from '../components/ui/Input';
 import { Select } from '../components/ui/Select';
 import { SystemUser } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useRolePath } from '../utils/rolePath';
 
 export function AddEditUserPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
   const { id } = useParams();
   const isEdit = !!id;
   
@@ -19,17 +21,6 @@ export function AddEditUserPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(isEdit);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
-  const getUserListPath = () => {
-    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const role = (JSON.parse(storedUser).role || '').toLowerCase().trim();
-        if (role === 'cecom') return '/cecom/users';
-      } catch (e) {}
-    }
-    return '/admin/users';
-  };
 
   useEffect(() => {
     const load = async () => {
@@ -119,7 +110,7 @@ export function AddEditUserPage() {
             setFetchError(err.message || 'Error: Failed to save user records.');
             return;
           }
-          navigate(getUserListPath());
+          navigate(path('/users'));
         } catch (err) {
           console.error(err);
           setFetchError('Error: Failed to save user records due to network error.');
@@ -140,7 +131,7 @@ export function AddEditUserPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate(getUserListPath())} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(path('/users'))} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
@@ -204,7 +195,7 @@ export function AddEditUserPage() {
         </div>
 
         <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-slate-100">
-          <Button type="button" variant="secondary" onClick={() => navigate(getUserListPath())}>
+          <Button type="button" variant="secondary" onClick={() => navigate(path('/users'))}>
             Cancel
           </Button>
           <Button type="submit" leftIcon={<Save className="w-4 h-4" />}>

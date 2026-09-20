@@ -36,6 +36,7 @@ const authorize = (...allowedRoles) => {
       const cleanRole = role.toLowerCase().trim();
       expandedRoles.push(cleanRole);
       
+      if (cleanRole === 'admin') expandedRoles.push('super admin');
       if (cleanRole === 'commercial user') expandedRoles.push('clerk');
       if (cleanRole === 'clerk') expandedRoles.push('commercial user');
       if (cleanRole === 'c.com user') expandedRoles.push('cecom');

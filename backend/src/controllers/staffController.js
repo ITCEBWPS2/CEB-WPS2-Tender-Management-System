@@ -68,7 +68,7 @@ exports.create = async (req, res, next) => {
 
     const insertData = {
       name: name || null,
-      email: email || null,
+      email: email && typeof email === 'string' && email.trim() !== '' ? email.trim() : null,
       area: area || null,
       designation: designation || null,
       department_id: departmentId
@@ -125,7 +125,9 @@ exports.update = async (req, res, next) => {
   try {
     const updates = {};
     if (req.body.name !== undefined) updates.name = req.body.name;
-    if (req.body.email !== undefined) updates.email = req.body.email;
+    if (req.body.email !== undefined) {
+      updates.email = req.body.email && typeof req.body.email === 'string' && req.body.email.trim() !== '' ? req.body.email.trim() : null;
+    }
     if (req.body.area !== undefined) updates.area = req.body.area;
     if (req.body.designation !== undefined) updates.designation = req.body.designation;
 

@@ -7,9 +7,13 @@ import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { Department } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import { useRolePath } from '../utils/rolePath';
 
 export function AddEditDepartmentPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
+  const { user } = useAuth();
   const { id } = useParams();
   const isEdit = !!id;
   
@@ -19,31 +23,24 @@ export function AddEditDepartmentPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(isEdit);
 
-  // Fetch and clean user role from session storage
-  const getCleanRole = (): string => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        if (parsed && parsed.role) return parsed.role.toLowerCase().trim();
-      } catch (e) {}
-    }
-    return 'guest'; 
-  };
+  const userRole = (user?.role || '').toLowerCase().trim();
+  const isAuthorized = ['admin', 'super admin', 'cecom', 'procurement'].includes(userRole);
 
-  const userRole = getCleanRole();
-
-  // Enforce Admin-only access guard for this page
+  // Enforce access guard for this page (Admin, Super Admin, CECOM, Procurement allowed; Clerk denied)
   useEffect(() => {
-    if (userRole !== 'admin') {
-      alert('Access Denied: You are not authorized to access this page. Only System Administrators can add or edit units. 🛑');
-      navigate('/records');
+    if (!isAuthorized) {
+      if (userRole === 'clerk') {
+        alert('Access Denied: Clerks are not authorized to add or edit units! 🛑');
+      } else {
+        alert('Access Denied: You are not authorized to access this page. 🛑');
+      }
+      navigate(path('/departments'));
     }
-  }, [userRole, navigate]);
+  }, [isAuthorized, userRole, navigate, path]);
 
   // Load existing unit data if in edit mode
   useEffect(() => {
-    if (isEdit && userRole === 'admin') {
+    if (isEdit && isAuthorized) {
       (async () => {
         setIsLoading(true);
         try {
@@ -62,7 +59,7 @@ export function AddEditDepartmentPage() {
         }
       })();
     }
-  }, [id, isEdit, userRole]);
+  }, [id, isEdit, isAuthorized]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
@@ -96,7 +93,7 @@ export function AddEditDepartmentPage() {
           setErrors({ submit: err.message || 'Error: Failed to save unit details.' });
           return;
         }
-        navigate('/departments');
+        navigate(path('/departments'));
       } catch (err) {
         console.error(err);
         alert('Error: Failed to save unit details.');
@@ -116,7 +113,7 @@ export function AddEditDepartmentPage() {
   return (
     <div className="max-w-3xl mx-auto h-[calc(100vh-140px)] flex flex-col">
       <div className="flex-shrink-0 flex items-center gap-4 mb-6">
-        <button onClick={() => navigate('/departments')} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(path('/departments'))} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
@@ -162,7 +159,7 @@ export function AddEditDepartmentPage() {
 
           {/* Sticky Actions */}
           <div className="sticky bottom-0 z-30 mt-8 flex items-center justify-end gap-4 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-slate-200 p-6 ring-1 ring-slate-100">
-            <Button type="button" variant="secondary" onClick={() => navigate('/departments')}>
+            <Button type="button" variant="secondary" onClick={() => navigate(path('/departments'))}>
               Cancel
             </Button>
             <Button type="submit" leftIcon={<Save className="w-4 h-4" />}>

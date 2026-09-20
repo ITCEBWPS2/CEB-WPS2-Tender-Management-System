@@ -4,6 +4,14 @@ const { generateTenderPdf, formatDate } = require('./pdfGenerator');
  * Helper to execute Resend email send via HTTP fetch.
  */
 async function callResendApi({ resendApiKey, toEmail, subject, html, attachments = [] }) {
+  if (!toEmail || typeof toEmail !== 'string' || !toEmail.trim()) {
+    return {
+      success: false,
+      resendId: null,
+      error: 'Recipient email is missing'
+    };
+  }
+
   if (!resendApiKey) {
     return {
       success: false,
