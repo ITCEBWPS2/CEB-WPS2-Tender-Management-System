@@ -6,9 +6,13 @@ import { Select } from '../components/ui/Select';
 import { Modal } from '../components/ui/Modal';
 import { Record as TmsRecord } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import { useRolePath } from '../utils/rolePath';
 
 export function RecordsPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
+  const { user } = useAuth();
   const [records, setRecords] = useState<TmsRecord[]>([]);
   const [categories, setCategories] = useState<any[]>([]); 
   const [isLoading, setIsLoading] = useState(true);
@@ -18,19 +22,7 @@ export function RecordsPage() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Fetch and clean user role from session storage
-  const getCleanRole = (): string => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        if (parsed && parsed.role) return parsed.role.toLowerCase().trim();
-      } catch (e) {}
-    }
-    return 'guest'; 
-  };
-
-  const userRole = getCleanRole();
+  const userRole = (user?.role || '').toLowerCase().trim();
 
   const handleDelete = () => {
     (async () => {
@@ -148,7 +140,7 @@ export function RecordsPage() {
           </h2>
           <p className="text-slate-500">Manage and track all tender records</p>
         </div>
-        <Button onClick={() => navigate('/records/add')} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button onClick={() => navigate(path('/records/add'))} leftIcon={<Plus className="w-4 h-4" />}>
           Add New Record
         </Button>
       </div>
@@ -271,11 +263,11 @@ export function RecordsPage() {
                     <td className="px-4 py-3 text-slate-700 whitespace-nowrap">{record.delay !== undefined ? `${record.delay} days` : '-'}</td>
                     <td className="px-4 py-3 whitespace-nowrap sticky right-0 z-10 bg-white shadow-[-4px_0_12px_-4px_rgba(0,0,0,0.1)] transition-colors">
                       <div className="flex items-center gap-2">
-                        <button onClick={() => navigate(`/records/view/${record.id}`)} className="p-1 text-slate-400 hover:text-[#bd5d2a] transition-colors" title="View Record">
+                        <button onClick={() => navigate(path(`/records/view/${record.id}`))} className="p-1 text-slate-400 hover:text-[#bd5d2a] transition-colors" title="View Record">
                           <Eye className="w-4 h-4" />
                         </button>
                         <button 
-                          onClick={() => navigate(`/records/view/${record.id}`)} 
+                          onClick={() => navigate(path(`/records/view/${record.id}`))} 
                           className="p-1 text-slate-400 hover:text-[#bd5d2a] transition-colors relative" 
                           title={`Documents (${(record.documents || []).length})`}
                         >
@@ -286,7 +278,7 @@ export function RecordsPage() {
                             </span>
                           )}
                         </button>
-                        <button onClick={() => navigate(`/records/edit/${record.id}`)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+                        <button onClick={() => navigate(path(`/records/edit/${record.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
                           <Edit2 className="w-4 h-4" />
                         </button>
                         <button onClick={() => setDeleteId(record.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">

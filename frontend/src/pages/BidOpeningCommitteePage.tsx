@@ -7,8 +7,11 @@ import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { BidOpeningCommittee } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useRolePath } from '../utils/rolePath';
+
 export function BidOpeningCommitteePage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
   const [committees, setCommittees] = useState<BidOpeningCommittee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -100,7 +103,7 @@ export function BidOpeningCommitteePage() {
     header: 'Actions',
     accessorKey: 'id' as keyof BidOpeningCommittee,
     cell: (item: BidOpeningCommittee) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(`/bid-opening/edit/${item.id}`)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+          <button onClick={() => navigate(path(`/bid-opening/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
             <Edit2 className="w-4 h-4" />
           </button>
           <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
@@ -118,7 +121,7 @@ export function BidOpeningCommitteePage() {
             Manage TEC committee members and appointments
           </p>
         </div>
-        <Button onClick={() => navigate('/bid-opening/add')} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button onClick={() => navigate(path('/bid-opening/add'))} leftIcon={<Plus className="w-4 h-4" />}>
           Add New Committee
         </Button>
       </div>

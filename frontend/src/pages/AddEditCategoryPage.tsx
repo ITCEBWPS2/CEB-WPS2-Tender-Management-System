@@ -7,9 +7,11 @@ import { Select } from '../components/ui/Select';
 import { Textarea } from '../components/ui/Textarea';
 import { CategoryItem } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useRolePath } from '../utils/rolePath';
 
 export function AddEditCategoryPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
   const { id } = useParams();
   const isEdit = !!id;
   
@@ -18,19 +20,6 @@ export function AddEditCategoryPage() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(isEdit);
-
-  const getCategoryListPath = () => {
-    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const role = (JSON.parse(storedUser).role || '').toLowerCase().trim();
-        if (role === 'procurement') return '/procurement/categories';
-        if (role === 'cecom') return '/cecom/categories';
-        if (role === 'clerk') return '/clerk/categories';
-      } catch (e) {}
-    }
-    return '/admin/categories';
-  };
 
   useEffect(() => {
     if (isEdit) {
@@ -94,7 +83,7 @@ export function AddEditCategoryPage() {
             setErrors({ submit: err.message || 'Failed to save category' });
             return;
           }
-          navigate(getCategoryListPath());
+          navigate(path('/categories'));
         } catch (err) {
           console.error(err);
           setErrors({ submit: 'Failed to save category due to a network error' });
@@ -115,7 +104,7 @@ export function AddEditCategoryPage() {
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       <div className="flex items-center gap-4 mb-6">
-        <button onClick={() => navigate(getCategoryListPath())} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(path('/categories'))} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
@@ -149,7 +138,7 @@ export function AddEditCategoryPage() {
         </div>
 
         <div className="flex items-center justify-end gap-4 mt-8 pt-6 border-t border-slate-100">
-          <Button type="button" variant="secondary" onClick={() => navigate(getCategoryListPath())}>
+          <Button type="button" variant="secondary" onClick={() => navigate(path('/categories'))}>
             Back to Categories
           </Button>
           <Button type="submit" className="flex items-center gap-2">

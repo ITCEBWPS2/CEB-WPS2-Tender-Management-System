@@ -7,9 +7,11 @@ import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { CategoryItem } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useRolePath } from '../utils/rolePath';
 
 export function CategoryListPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -92,7 +94,7 @@ export function CategoryListPage() {
     header: 'Actions',
     accessorKey: 'id' as keyof CategoryItem,
     cell: (item: CategoryItem) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(`/categories/edit/${item.id}`)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+          <button onClick={() => navigate(path(`/categories/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
             <Edit2 className="w-4 h-4" />
           </button>
           <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
@@ -110,7 +112,7 @@ export function CategoryListPage() {
             Manage tender categories and classifications
           </p>
         </div>
-        <Button onClick={() => navigate('/categories/add')} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button onClick={() => navigate(path('/categories/add'))} leftIcon={<Plus className="w-4 h-4" />}>
           Add New Category
         </Button>
       </div>

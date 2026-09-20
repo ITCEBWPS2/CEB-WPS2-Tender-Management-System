@@ -72,6 +72,8 @@ export interface Staff {
   area: string;
   designation: string;
 }
+export type TecStaff = Staff;
+
 export interface Bidder {
   id: string;
   name: string;
@@ -105,6 +107,7 @@ export interface BidOpeningCommittee {
   appointedDate: string;
   status: CommitteeStatus;
 }
+export type Committee = BidOpeningCommittee;
 export interface SystemUser {
   id: string;
   name: string;

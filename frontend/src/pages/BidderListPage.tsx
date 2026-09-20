@@ -6,8 +6,11 @@ import { Button } from '../components/ui/Button';
 import { Modal } from '../components/ui/Modal';
 import { Bidder } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useRolePath } from '../utils/rolePath';
+
 export function BidderListPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
   const [bidders, setBidders] = useState<Bidder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -70,7 +73,7 @@ export function BidderListPage() {
     header: 'Actions',
     accessorKey: 'id' as keyof Bidder,
     cell: (item: Bidder) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(`/bidders/edit/${item.id}`)} className="p-1 text-slate-400 hover:text-blue-600 transition-colors">
+          <button onClick={() => navigate(path(`/bidders/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors">
             <Edit2 className="w-4 h-4" />
           </button>
           <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors">
@@ -88,7 +91,7 @@ export function BidderListPage() {
             Manage supplier (bidder) information
           </p>
         </div>
-        <Button onClick={() => navigate('/bidders/add')} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button onClick={() => navigate(path('/bidders/add'))} leftIcon={<Plus className="w-4 h-4" />}>
           Add supplier
         </Button>
       </div>

@@ -5,26 +5,19 @@ import { Button } from '../components/ui/Button';
 import { Record as TmsRecord } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { RecordDocumentsSection } from '../components/records/RecordDocumentsSection';
+import { useAuth } from '../context/AuthContext';
+import { useRolePath } from '../utils/rolePath';
 
 export function ViewRecordPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
+  const { user } = useAuth();
   const { id } = useParams();
   const [record, setRecord] = useState<TmsRecord | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const getCleanRole = (): string => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        if (parsed && parsed.role) return parsed.role.toLowerCase().trim();
-      } catch (e) {}
-    }
-    return 'guest';
-  };
-
-  const userRole = getCleanRole();
+  const userRole = (user?.role || '').toLowerCase().trim();
   const canDeleteDocuments = ['admin', 'procurement', 'super admin'].includes(userRole);
 
   useEffect(() => {
@@ -87,7 +80,7 @@ export function ViewRecordPage() {
       <div className="max-w-5xl mx-auto p-8 text-center bg-white rounded-xl shadow-sm border border-red-200">
         <h2 className="text-xl font-bold text-red-600 mb-2">Error Loading Record</h2>
         <p className="text-slate-600 mb-4">{error}</p>
-        <Button onClick={() => navigate('/records')}>Back to Records</Button>
+        <Button onClick={() => navigate(path('/records'))}>Back to Records</Button>
       </div>
     );
   }
@@ -96,7 +89,7 @@ export function ViewRecordPage() {
     return (
       <div className="max-w-5xl mx-auto p-8 text-center bg-white rounded-xl shadow-sm border border-slate-200">
         <h2 className="text-xl font-bold text-slate-800">Record not found</h2>
-        <Button onClick={() => navigate('/records')} className="mt-4">Back to Records</Button>
+        <Button onClick={() => navigate(path('/records'))} className="mt-4">Back to Records</Button>
       </div>
     );
   }
@@ -106,7 +99,7 @@ export function ViewRecordPage() {
       {/* Header */}
       <div className="flex-shrink-0 flex items-center justify-between gap-4 mb-6">
         <div className="flex items-center gap-4">
-          <button onClick={() => navigate('/records')} className="p-2 hover:bg-white/50 rounded-full transition-colors backdrop-blur-sm">
+          <button onClick={() => navigate(path('/records'))} className="p-2 hover:bg-white/50 rounded-full transition-colors backdrop-blur-sm">
             <ArrowLeft className="w-5 h-5 text-slate-600" />
           </button>
           <div>
@@ -122,10 +115,10 @@ export function ViewRecordPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(`/records/edit/${record.id}`)} className="bg-white/50 backdrop-blur-sm">
+          <Button variant="outline" onClick={() => navigate(path(`/records/edit/${record.id}`))} className="bg-white/50 backdrop-blur-sm">
             Edit Record
           </Button>
-          <Button onClick={() => navigate('/records')}>
+          <Button onClick={() => navigate(path('/records'))}>
             Close View
           </Button>
         </div>

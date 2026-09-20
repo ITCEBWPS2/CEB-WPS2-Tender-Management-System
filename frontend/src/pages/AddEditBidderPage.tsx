@@ -6,28 +6,17 @@ import { Input } from '../components/ui/Input';
 import { Textarea } from '../components/ui/Textarea';
 import { Bidder } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useRolePath } from '../utils/rolePath';
 
 export function AddEditBidderPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
   const { id } = useParams();
   const isEdit = !!id;
   const [formData, setFormData] = useState<Partial<Bidder>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(isEdit);
   const [fetchError, setFetchError] = useState<string | null>(null);
-
-  const getBidderListPath = () => {
-    const storedUser = localStorage.getItem('user') || sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const role = (JSON.parse(storedUser).role || '').toLowerCase().trim();
-        if (role === 'procurement') return '/procurement/bidders';
-        if (role === 'cecom') return '/cecom/bidders';
-        if (role === 'clerk') return '/clerk/bidders';
-      } catch (e) {}
-    }
-    return '/admin/bidders';
-  };
 
   useEffect(() => {
     if (isEdit) {
@@ -98,7 +87,7 @@ export function AddEditBidderPage() {
           setErrors({ submit: err.message || 'Failed to save supplier' });
           return;
         }
-        navigate(getBidderListPath());
+        navigate(path('/bidders'));
       } catch (err) {
         console.error(err);
         setErrors({ submit: 'Failed to save supplier due to a network error' });
@@ -118,7 +107,7 @@ export function AddEditBidderPage() {
   return (
     <div className="max-w-3xl mx-auto h-[calc(100vh-140px)] flex flex-col">
       <div className="flex-shrink-0 flex items-center gap-4 mb-6">
-        <button onClick={() => navigate(getBidderListPath())} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
+        <button onClick={() => navigate(path('/bidders'))} className="p-2 hover:bg-slate-100 rounded-full transition-colors">
           <ArrowLeft className="w-5 h-5 text-slate-600" />
         </button>
         <div>
@@ -179,7 +168,7 @@ export function AddEditBidderPage() {
           />
 
           <div className="flex items-center justify-end gap-4 pt-6 border-t border-slate-100">
-            <Button type="button" variant="secondary" onClick={() => navigate(getBidderListPath())}>
+            <Button type="button" variant="secondary" onClick={() => navigate(path('/bidders'))}>
               Cancel
             </Button>
             <Button type="submit" leftIcon={<Save className="w-4 h-4" />}>

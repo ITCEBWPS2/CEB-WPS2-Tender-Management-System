@@ -7,28 +7,20 @@ import { Modal } from '../components/ui/Modal';
 import { Select } from '../components/ui/Select';
 import { Department } from '../utils/types';
 import { apiFetch } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import { useRolePath } from '../utils/rolePath';
 
 export function DepartmentListPage() {
   const navigate = useNavigate();
+  const { path } = useRolePath();
+  const { user } = useAuth();
   const [departments, setDepartments] = useState<Department[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
 
-  // Fetch and clean user role from session storage
-  const getCleanRole = (): string => {
-    const storedUser = sessionStorage.getItem('user');
-    if (storedUser) {
-      try {
-        const parsed = JSON.parse(storedUser);
-        if (parsed && parsed.role) return parsed.role.toLowerCase().trim();
-      } catch (e) {}
-    }
-    return 'guest'; 
-  };
-
-  const userRole = getCleanRole();
+  const userRole = (user?.role || '').toLowerCase().trim();
 
   const handleDelete = () => {
     (async () => {
@@ -124,7 +116,7 @@ export function DepartmentListPage() {
                 alert('Access Denied: Clerks are not authorized to edit units! Only Admins can perform this action. 🛑');
                 return;
               }
-              navigate(`/departments/edit/${item.id}`);
+              navigate(path(`/departments/edit/${item.id}`));
             }} 
             className="p-1 text-slate-400 hover:text-blue-600 transition-colors" 
             title="Edit"
@@ -149,7 +141,7 @@ export function DepartmentListPage() {
             Manage organizational units
           </p>
         </div>
-        <Button onClick={() => navigate('/departments/add')} leftIcon={<Plus className="w-4 h-4" />}>
+        <Button onClick={() => navigate(path('/departments/add'))} leftIcon={<Plus className="w-4 h-4" />}>
           Add New Unit
         </Button>
       </div>
