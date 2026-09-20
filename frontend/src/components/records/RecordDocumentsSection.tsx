@@ -67,7 +67,7 @@ export function RecordDocumentsSection({
     }
   };
 
-  const getDocIcon = (filename: string = '', mimeType: string = '') => {
+  const getDocIcon = (filename = '', mimeType = '') => {
     const safeFilename = filename || '';
     const safeMime = mimeType || '';
     const ext = safeFilename.split('.').pop()?.toLowerCase() || '';

@@ -15,7 +15,7 @@ const TITLE_OPTIONS = [
   ...STAFF_TITLES.map(t => ({ value: t, label: t }))
 ];
 
-export function parseStaffName(fullName: string = '') {
+export function parseStaffName(fullName = '') {
   const trimmed = fullName.trim();
   for (const t of STAFF_TITLES) {
     if (trimmed === t) {
