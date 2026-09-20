@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Edit, Eye, CheckSquare, Clock } from 'lucide-react';
+import { Eye, CheckSquare, Clock } from 'lucide-react';
 import { DataTable } from '../../components/shared/DataTable';
 import { Button } from '../../components/ui/Button';
 import { Record as TmsRecord } from '../../utils/types';
@@ -82,42 +82,26 @@ export function ClerkDashboard() {
       header: 'Quick Action',
       accessorKey: ((record: TmsRecord) => record.id) as any,
       cell: (record: TmsRecord) => (
-        <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => navigate(`/clerk/records/edit/${record.id}`)}
-            className="flex items-center gap-1 text-xs text-slate-700 border-slate-300 hover:bg-slate-50"
-          >
-            <Edit className="w-3.5 h-3.5" /> Edit Data
-          </Button>
-          <button
-            onClick={() => navigate(`/clerk/records/view/${record.id}`)}
-            className="p-1.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-            title="View Record"
-          >
-            <Eye className="w-4 h-4" />
-          </button>
-        </div>
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => navigate(`/clerk/records/view/${record.id}`)}
+          className="flex items-center gap-1 text-xs text-slate-700 border-slate-300 hover:bg-slate-50"
+        >
+          <Eye className="w-3.5 h-3.5" /> View Record
+        </Button>
       )
     }
   ];
 
   return (
     <div className="space-y-6">
-      {/* Header & Prominent Quick Action */}
+      {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 tracking-tight">Clerk Work Queue</h2>
           <p className="text-slate-500 text-sm mt-1">Pending data entry and tender record maintenance queue</p>
         </div>
-        <Button
-          onClick={() => navigate('/clerk/records/add')}
-          size="lg"
-          className="flex items-center justify-center gap-2 bg-[#bd5d2a] hover:bg-[#a34f22] text-white shadow-md"
-        >
-          <Plus className="w-5 h-5" /> Add New Record
-        </Button>
       </div>
 
       {/* Task Summary Strip */}

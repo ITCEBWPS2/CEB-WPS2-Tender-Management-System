@@ -45,7 +45,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Record',
       path: `${prefix}/records/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
     title: 'Categories',
@@ -126,7 +126,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     title: 'User Management',
     path: `${prefix}/users`,
     icon: <Shield className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'CECOM'],
+    allowedRoles: ['Admin', 'Super Admin'],
     subItems: [{
       title: 'All Users',
       path: `${prefix}/users`,
@@ -140,12 +140,12 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     title: 'Audit Log',
     path: `${prefix}/audit-log`,
     icon: <FileSearch className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'CECOM']
+    allowedRoles: ['Admin', 'Super Admin']
   }, {
     title: 'Notification Log',
     path: `${prefix}/notifications`,
     icon: <Bell className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'CECOM']
+    allowedRoles: ['Admin', 'Super Admin']
   }, {
     title: 'Export',
     path: `${prefix}/export`,

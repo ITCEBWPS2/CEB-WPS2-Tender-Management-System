@@ -18,7 +18,9 @@ export function ViewRecordPage() {
   const [error, setError] = useState<string | null>(null);
 
   const userRole = (user?.role || '').toLowerCase().trim();
-  const canDeleteDocuments = ['admin', 'procurement', 'super admin'].includes(userRole);
+  const effectiveRole = userRole === 'super admin' ? 'admin' : userRole;
+  const canDeleteDocuments = ['admin', 'procurement'].includes(effectiveRole);
+  const canEdit = ['admin', 'procurement', 'cecom'].includes(effectiveRole);
 
   useEffect(() => {
     const loadRecord = async () => {
@@ -115,9 +117,11 @@ export function ViewRecordPage() {
           </div>
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate(path(`/records/edit/${record.id}`))} className="bg-white/50 backdrop-blur-sm">
-            Edit Record
-          </Button>
+          {canEdit && (
+            <Button variant="outline" onClick={() => navigate(path(`/records/edit/${record.id}`))} className="bg-white/50 backdrop-blur-sm">
+              Edit Record
+            </Button>
+          )}
           <Button onClick={() => navigate(path('/records'))}>
             Close View
           </Button>

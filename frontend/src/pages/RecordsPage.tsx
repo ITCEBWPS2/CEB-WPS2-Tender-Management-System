@@ -22,18 +22,15 @@ export function RecordsPage() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const userRole = (user?.role || '').toLowerCase().trim();
+  const role = (user?.role || '').toLowerCase().trim();
+  const effectiveRole = role === 'super admin' ? 'admin' : role;
+  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
 
   const handleDelete = () => {
     (async () => {
-      if (!deleteId) return;
-
-      // Restrict delete access for Clerk role
-      if (userRole === 'clerk') {
-        alert('Access Denied: Clerks are not authorized to delete tender records! Only Admins can perform this action. 🛑');
-        setDeleteId(null);
-        return;
-      }
+      if (!deleteId || !canDelete) return;
 
       try {
         const res = await apiFetch(`/api/records/${deleteId}`, {
@@ -140,9 +137,11 @@ export function RecordsPage() {
           </h2>
           <p className="text-slate-500">Manage and track all tender records</p>
         </div>
-        <Button onClick={() => navigate(path('/records/add'))} leftIcon={<Plus className="w-4 h-4" />}>
-          Add New Record
-        </Button>
+        {canAdd && (
+          <Button onClick={() => navigate(path('/records/add'))} leftIcon={<Plus className="w-4 h-4" />}>
+            Add New Record
+          </Button>
+        )}
       </div>
 
       {/* Filters Section */}
@@ -278,12 +277,16 @@ export function RecordsPage() {
                             </span>
                           )}
                         </button>
-                        <button onClick={() => navigate(path(`/records/edit/${record.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
-                          <Edit2 className="w-4 h-4" />
-                        </button>
-                        <button onClick={() => setDeleteId(record.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
+                        {canEdit && (
+                          <button onClick={() => navigate(path(`/records/edit/${record.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+                            <Edit2 className="w-4 h-4" />
+                          </button>
+                        )}
+                        {canDelete && (
+                          <button onClick={() => setDeleteId(record.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+                            <Trash2 className="w-4 h-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>) : <tr>
