@@ -7,17 +7,26 @@ import { Modal } from '../components/ui/Modal';
 import { Staff } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useRolePath } from '../utils/rolePath';
+import { useAuth } from '../context/AuthContext';
 
 export function TecStaffPage() {
   const navigate = useNavigate();
   const { path } = useRolePath();
+  const { user } = useAuth();
   const [staff, setStaff] = useState<Staff[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const role = (user?.role || '').toLowerCase().trim();
+  const effectiveRole = role === 'super admin' ? 'admin' : role;
+  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom';
+  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom';
+  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
+
   const handleDelete = () => {
     (async () => {
-      if (!deleteId) return;
+      if (!deleteId || !canDelete) return;
       try {
         const res = await apiFetch(`/api/staff/${deleteId}`, {
           method: 'DELETE'
@@ -73,27 +82,33 @@ export function TecStaffPage() {
   }, {
     header: 'Designation',
     accessorKey: 'designation' as keyof Staff
-  }, {
+  }, ...(canEdit || canDelete ? [{
     header: 'Actions',
     accessorKey: 'id' as keyof Staff,
     cell: (item: Staff) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(path(`/tec-staff/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors">
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-  }];
+      {canEdit && (
+        <button onClick={() => navigate(path(`/tec-staff/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+          <Edit2 className="w-4 h-4" />
+        </button>
+      )}
+      {canDelete && (
+        <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  }] : [])];
   return <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
           <h2 className="text-2xl font-bold text-slate-900">Staff</h2>
           <p className="text-slate-500">Manage committee members and staff</p>
         </div>
-        <Button onClick={() => navigate(path('/tec-staff/add'))} leftIcon={<Plus className="w-4 h-4" />}>
-          Add Staff Member
-        </Button>
+        {canAdd && (
+          <Button onClick={() => navigate(path('/tec-staff/add'))} leftIcon={<Plus className="w-4 h-4" />}>
+            Add Staff Member
+          </Button>
+        )}
       </div>
 
       <DataTable data={staff} columns={columns} searchKey="name" searchPlaceholder="Search staff by name..." isLoading={isLoading} error={error} emptyMessage="No staff members found." />

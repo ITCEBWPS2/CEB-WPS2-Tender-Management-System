@@ -8,19 +8,27 @@ import { Select } from '../components/ui/Select';
 import { CategoryItem } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useRolePath } from '../utils/rolePath';
+import { useAuth } from '../context/AuthContext';
 
 export function CategoryListPage() {
   const navigate = useNavigate();
   const { path } = useRolePath();
+  const { user } = useAuth();
   const [categories, setCategories] = useState<CategoryItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
 
+  const role = (user?.role || '').toLowerCase().trim();
+  const effectiveRole = role === 'super admin' ? 'admin' : role;
+  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
+
   const handleDelete = () => {
     (async () => {
-      if (!deleteId) return;
+      if (!deleteId || !canDelete) return;
       try {
         const res = await apiFetch(`/api/categories/${deleteId}`, {
           method: 'DELETE'
@@ -90,18 +98,22 @@ export function CategoryListPage() {
   }, {
     header: 'Created Date',
     accessorKey: 'createdDate' as keyof CategoryItem
-  }, {
+  }, ...(canEdit || canDelete ? [{
     header: 'Actions',
     accessorKey: 'id' as keyof CategoryItem,
     cell: (item: CategoryItem) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(path(`/categories/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-  }];
+      {canEdit && (
+        <button onClick={() => navigate(path(`/categories/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+          <Edit2 className="w-4 h-4" />
+        </button>
+      )}
+      {canDelete && (
+        <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  }] : [])];
   return <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -112,9 +124,11 @@ export function CategoryListPage() {
             Manage tender categories and classifications
           </p>
         </div>
-        <Button onClick={() => navigate(path('/categories/add'))} leftIcon={<Plus className="w-4 h-4" />}>
-          Add New Category
-        </Button>
+        {canAdd && (
+          <Button onClick={() => navigate(path('/categories/add'))} leftIcon={<Plus className="w-4 h-4" />}>
+            Add New Category
+          </Button>
+        )}
       </div>
 
       <DataTable data={filteredCategories} columns={columns} searchKey="name" searchPlaceholder="Search by category name..." isLoading={isLoading} error={error} emptyMessage="No categories found." filters={<Select className="w-32" options={[{

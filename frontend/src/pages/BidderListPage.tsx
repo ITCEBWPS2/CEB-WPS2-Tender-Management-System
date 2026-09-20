@@ -7,17 +7,26 @@ import { Modal } from '../components/ui/Modal';
 import { Bidder } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useRolePath } from '../utils/rolePath';
+import { useAuth } from '../context/AuthContext';
 
 export function BidderListPage() {
   const navigate = useNavigate();
   const { path } = useRolePath();
+  const { user } = useAuth();
   const [bidders, setBidders] = useState<Bidder[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const role = (user?.role || '').toLowerCase().trim();
+  const effectiveRole = role === 'super admin' ? 'admin' : role;
+  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
+
   const handleDelete = () => {
     (async () => {
-      if (!deleteId) return;
+      if (!deleteId || !canDelete) return;
       try {
         const res = await apiFetch(`/api/bidders/${deleteId}`, {
           method: 'DELETE'
@@ -69,18 +78,22 @@ export function BidderListPage() {
   }, {
     header: 'Address',
     accessorKey: 'address' as keyof Bidder
-  }, {
+  }, ...(canEdit || canDelete ? [{
     header: 'Actions',
     accessorKey: 'id' as keyof Bidder,
     cell: (item: Bidder) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(path(`/bidders/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors">
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-  }];
+      {canEdit && (
+        <button onClick={() => navigate(path(`/bidders/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+          <Edit2 className="w-4 h-4" />
+        </button>
+      )}
+      {canDelete && (
+        <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  }] : [])];
   return <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
@@ -91,9 +104,11 @@ export function BidderListPage() {
             Manage supplier (bidder) information
           </p>
         </div>
-        <Button onClick={() => navigate(path('/bidders/add'))} leftIcon={<Plus className="w-4 h-4" />}>
-          Add supplier
-        </Button>
+        {canAdd && (
+          <Button onClick={() => navigate(path('/bidders/add'))} leftIcon={<Plus className="w-4 h-4" />}>
+            Add supplier
+          </Button>
+        )}
       </div>
 
       <DataTable data={bidders} columns={columns} searchKey="name" searchPlaceholder="Search suppliers..." isLoading={isLoading} error={error} emptyMessage="No suppliers found." />

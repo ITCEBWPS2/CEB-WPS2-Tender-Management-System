@@ -14,10 +14,12 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   const { prefix } = useRolePath();
 
   const userRole = (user?.role || '').toLowerCase().trim();
+  const effectiveRole = userRole === 'super admin' ? 'admin' : userRole;
 
   const hasRoleAccess = (allowed: string[] | undefined) => {
     if (!allowed) return true; 
-    return allowed.map(r => r.toLowerCase().trim()).includes(userRole);
+    const allowedClean = allowed.map(r => r.toLowerCase().trim());
+    return allowedClean.includes(userRole) || allowedClean.includes(effectiveRole);
   };
 
   const handleLogout = () => {
@@ -58,7 +60,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Category',
       path: `${prefix}/categories/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
     title: 'Units',
@@ -73,7 +75,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Unit',
       path: `${prefix}/departments/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
     title: 'Staff',
@@ -88,7 +90,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Staff',
       path: `${prefix}/tec-staff/add`,
       icon: <UserPlus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'CECOM']
     }]
   }, {
     title: 'Bidders',
@@ -103,7 +105,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Supplier',
       path: `${prefix}/bidders/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
     title: 'TEC Committee',
@@ -118,7 +120,7 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
       title: 'Add Committee',
       path: `${prefix}/bid-opening/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk']
+      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
     }]
   }, {
     title: 'User Management',

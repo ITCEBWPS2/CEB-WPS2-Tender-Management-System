@@ -20,18 +20,15 @@ export function DepartmentListPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const userRole = (user?.role || '').toLowerCase().trim();
+  const role = (user?.role || '').toLowerCase().trim();
+  const effectiveRole = role === 'super admin' ? 'admin' : role;
+  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
 
   const handleDelete = () => {
     (async () => {
-      if (!deleteId) return;
-
-      // Restrict delete access for Clerk role
-      if (userRole === 'clerk') {
-        alert('Access Denied: Clerks are not authorized to delete units! Only Admins can perform this action. 🛑');
-        setDeleteId(null);
-        return;
-      }
+      if (!deleteId || !canDelete) return;
 
       try {
         const res = await apiFetch(`/api/departments/${deleteId}`, {
@@ -104,31 +101,26 @@ export function DepartmentListPage() {
             {item.status}
           </span>;
     }
-  }, {
+  }, ...(canEdit || canDelete ? [{
     header: 'Actions',
     accessorKey: 'id' as keyof Department,
     cell: (item: Department) => <div className="flex items-center gap-2">
-          
-          {/* Restrict Edit/Modification access to Admins only */}
-          <button 
-            onClick={() => {
-              if (userRole === 'clerk') {
-                alert('Access Denied: Clerks are not authorized to edit units! Only Admins can perform this action. 🛑');
-                return;
-              }
-              navigate(path(`/departments/edit/${item.id}`));
-            }} 
-            className="p-1 text-slate-400 hover:text-blue-600 transition-colors" 
-            title="Edit"
-          >
-            <Edit2 className="w-4 h-4" />
-          </button>
-
-          <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-  }];
+      {canEdit && (
+        <button 
+          onClick={() => navigate(path(`/departments/edit/${item.id}`))} 
+          className="p-1 text-slate-400 hover:text-blue-600 transition-colors" 
+          title="Edit"
+        >
+          <Edit2 className="w-4 h-4" />
+        </button>
+      )}
+      {canDelete && (
+        <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  }] : [])];
 
   return <div className="space-y-6">
       {/* Top Header Section */}
@@ -141,9 +133,11 @@ export function DepartmentListPage() {
             Manage organizational units
           </p>
         </div>
-        <Button onClick={() => navigate(path('/departments/add'))} leftIcon={<Plus className="w-4 h-4" />}>
-          Add New Unit
-        </Button>
+        {canAdd && (
+          <Button onClick={() => navigate(path('/departments/add'))} leftIcon={<Plus className="w-4 h-4" />}>
+            Add New Unit
+          </Button>
+        )}
       </div>
 
       {/* Main Data Table View */}

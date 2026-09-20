@@ -8,18 +8,27 @@ import { Select } from '../components/ui/Select';
 import { BidOpeningCommittee } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useRolePath } from '../utils/rolePath';
+import { useAuth } from '../context/AuthContext';
 
 export function BidOpeningCommitteePage() {
   const navigate = useNavigate();
   const { path } = useRolePath();
+  const { user } = useAuth();
   const [committees, setCommittees] = useState<BidOpeningCommittee[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
+
+  const role = (user?.role || '').toLowerCase().trim();
+  const effectiveRole = role === 'super admin' ? 'admin' : role;
+  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
+  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
+
   const handleDelete = () => {
     (async () => {
-      if (!deleteId) return;
+      if (!deleteId || !canDelete) return;
       try {
         const res = await apiFetch(`/api/committees/${deleteId}`, {
           method: 'DELETE'
@@ -99,18 +108,22 @@ export function BidOpeningCommitteePage() {
             {item.status}
           </span>;
     }
-  }, {
+  }, ...(canEdit || canDelete ? [{
     header: 'Actions',
     accessorKey: 'id' as keyof BidOpeningCommittee,
     cell: (item: BidOpeningCommittee) => <div className="flex items-center gap-2">
-          <button onClick={() => navigate(path(`/bid-opening/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
-            <Edit2 className="w-4 h-4" />
-          </button>
-          <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
-            <Trash2 className="w-4 h-4" />
-          </button>
-        </div>
-  }];
+      {canEdit && (
+        <button onClick={() => navigate(path(`/bid-opening/edit/${item.id}`))} className="p-1 text-slate-400 hover:text-blue-600 transition-colors" title="Edit">
+          <Edit2 className="w-4 h-4" />
+        </button>
+      )}
+      {canDelete && (
+        <button onClick={() => setDeleteId(item.id)} className="p-1 text-slate-400 hover:text-red-600 transition-colors" title="Delete">
+          <Trash2 className="w-4 h-4" />
+        </button>
+      )}
+    </div>
+  }] : [])];
   return <div className="space-y-6">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
@@ -121,9 +134,11 @@ export function BidOpeningCommitteePage() {
             Manage TEC committee members and appointments
           </p>
         </div>
-        <Button onClick={() => navigate(path('/bid-opening/add'))} leftIcon={<Plus className="w-4 h-4" />}>
-          Add New Committee
-        </Button>
+        {canAdd && (
+          <Button onClick={() => navigate(path('/bid-opening/add'))} leftIcon={<Plus className="w-4 h-4" />}>
+            Add New Committee
+          </Button>
+        )}
       </div>
 
       <DataTable data={filteredCommittees} columns={columns} searchKey="committeeNumber" searchPlaceholder="Search by committee number..." isLoading={isLoading} error={error} emptyMessage="No committees found." filters={<Select className="w-32" options={[{
