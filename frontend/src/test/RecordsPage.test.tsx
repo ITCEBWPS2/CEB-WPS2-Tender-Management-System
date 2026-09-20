@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { RecordsPage } from '../pages/RecordsPage';
+import { AuthProvider } from '../context/AuthContext';
 import * as apiModule from '../utils/api';
 
 describe('RecordsPage Smoke Test', () => {
@@ -31,7 +32,9 @@ describe('RecordsPage Smoke Test', () => {
 
     render(
       <MemoryRouter>
-        <RecordsPage />
+        <AuthProvider>
+          <RecordsPage />
+        </AuthProvider>
       </MemoryRouter>
     );
 
@@ -70,7 +73,9 @@ describe('RecordsPage Smoke Test', () => {
 
     render(
       <MemoryRouter>
-        <RecordsPage />
+        <AuthProvider>
+          <RecordsPage />
+        </AuthProvider>
       </MemoryRouter>
     );
 

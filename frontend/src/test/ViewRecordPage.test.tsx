@@ -2,6 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ViewRecordPage } from '../pages/ViewRecordPage';
+import { AuthProvider } from '../context/AuthContext';
 import * as apiModule from '../utils/api';
 
 describe('ViewRecordPage & Documents Section Smoke Test', () => {
@@ -51,9 +52,11 @@ describe('ViewRecordPage & Documents Section Smoke Test', () => {
 
     render(
       <MemoryRouter initialEntries={['/records/view/rec_doc_123']}>
-        <Routes>
-          <Route path="/records/view/:id" element={<ViewRecordPage />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/records/view/:id" element={<ViewRecordPage />} />
+          </Routes>
+        </AuthProvider>
       </MemoryRouter>
     );
 
@@ -85,9 +88,11 @@ describe('ViewRecordPage & Documents Section Smoke Test', () => {
 
     render(
       <MemoryRouter initialEntries={['/records/view/rec_doc_123']}>
-        <Routes>
-          <Route path="/records/view/:id" element={<ViewRecordPage />} />
-        </Routes>
+        <AuthProvider>
+          <Routes>
+            <Route path="/records/view/:id" element={<ViewRecordPage />} />
+          </Routes>
+        </AuthProvider>
       </MemoryRouter>
     );
 
