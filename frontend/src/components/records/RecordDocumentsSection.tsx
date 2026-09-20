@@ -67,9 +67,11 @@ export function RecordDocumentsSection({
     }
   };
 
-  const getDocIcon = (filename: string, mimeType: string) => {
-    const ext = filename.split('.').pop()?.toLowerCase() || '';
-    if (ext === 'pdf' || mimeType.includes('pdf')) {
+  const getDocIcon = (filename: string = '', mimeType: string = '') => {
+    const safeFilename = filename || '';
+    const safeMime = mimeType || '';
+    const ext = safeFilename.split('.').pop()?.toLowerCase() || '';
+    if (ext === 'pdf' || safeMime.includes('pdf')) {
       return (
         <div className="w-10 h-10 rounded-lg bg-red-50 text-red-600 flex items-center justify-center flex-shrink-0 font-black text-xs">
           PDF
