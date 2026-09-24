@@ -8,12 +8,24 @@ import { DatePicker } from '../components/ui/DatePicker';
 import { BidOpeningCommittee, TecStaff } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useRolePath } from '../utils/rolePath';
+import { useAuth } from '../context/AuthContext';
+import { can } from '../utils/permissions';
 
 export function AddEditCommitteePage() {
   const navigate = useNavigate();
   const { path } = useRolePath();
+  const { user } = useAuth();
   const { id } = useParams();
   const isEdit = !!id;
+
+  const isAuthorized = isEdit ? can('edit', user?.role) : can('add', user?.role);
+
+  useEffect(() => {
+    if (!isAuthorized) {
+      alert('Access Denied: You are not authorized to add or edit committees. 🛑');
+      navigate(path('/bid-opening'));
+    }
+  }, [isAuthorized, navigate, path]);
 
   const [formData, setFormData] = useState<Partial<BidOpeningCommittee>>({
     status: 'Active',
@@ -98,7 +110,12 @@ export function AddEditCommitteePage() {
   const validate = () => {
     const newErrors: Record<string, string> = {};
     if (!formData.committeeNumber) newErrors.committeeNumber = 'Committee Number is required';
-    if (!formData.appointedDate) newErrors.appointedDate = 'Appointed Date is required';
+    if (formData.appointedDate && formData.appointedDate.trim() !== '') {
+      const d = new Date(formData.appointedDate);
+      if (isNaN(d.getTime())) {
+        newErrors.appointedDate = 'Invalid date format';
+      }
+    }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -111,10 +128,14 @@ export function AddEditCommitteePage() {
       try {
         const url = isEdit ? `/api/committees/${id}` : '/api/committees';
         const method = isEdit ? 'PUT' : 'POST';
+        const payload = {
+          ...formData,
+          appointedDate: formData.appointedDate && formData.appointedDate.trim() !== '' ? formData.appointedDate : null
+        };
         const res = await apiFetch(url, {
           method,
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(formData)
+          body: JSON.stringify(payload)
         });
 
         if (!res.ok) {
@@ -173,7 +194,7 @@ export function AddEditCommitteePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <Input label="Committee Number" name="committeeNumber" value={formData.committeeNumber || ''} onChange={handleChange} error={errors.committeeNumber} placeholder="e.g. TEC/2023/001" />
 
-            <DatePicker label="Appointed Date" name="appointedDate" value={formData.appointedDate || ''} onChange={handleChange} error={errors.appointedDate} />
+            <DatePicker label="Appointed Date (Optional)" name="appointedDate" value={formData.appointedDate || ''} onChange={handleChange} error={errors.appointedDate} />
           </div>
 
           <div className="border-t border-slate-100 pt-6">
