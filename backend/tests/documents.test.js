@@ -156,13 +156,14 @@ describe('Record Documents Management', () => {
       expect(logs && logs.length > 0).toBe(true);
     });
 
-    it('should allow document deletion by Procurement role with 200', async () => {
+    it('should reject document deletion by Procurement role with 403 (Admin-only delete permission)', async () => {
       const res = await request(app)
         .delete(`/api/records/${testRecord._id}/documents/${docId}`)
         .set('Authorization', `Bearer ${procurementToken}`);
 
-      expect(res.status).toBe(200);
-      expect(res.body.message).toMatch(/deleted successfully/i);
+      expect(res.status).toBe(403);
+      expect(res.body).toHaveProperty('message');
+      expect(res.body.message).toMatch(/not authorized/i);
     });
   });
 });
