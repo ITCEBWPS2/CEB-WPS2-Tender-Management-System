@@ -32,7 +32,8 @@ const authorize = (...allowedRoles) => {
 
     // 🎯 Dynamically expand permitted roles to natively bridge legacy and standardized roles
     const expandedRoles = [];
-    allowedRoles.forEach(role => {
+    const flattenedRoles = allowedRoles.flat();
+    flattenedRoles.forEach(role => {
       const cleanRole = role.toLowerCase().trim();
       expandedRoles.push(cleanRole);
       

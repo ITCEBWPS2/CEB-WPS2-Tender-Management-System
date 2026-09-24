@@ -181,6 +181,9 @@ export function AddEditUserPage() {
           }, {
             value: 'Clerk',
             label: 'Clerk'
+          }, {
+            value: 'User',
+            label: 'User'
           }]} />
 
           {!isEdit && <Input label="Password" name="password" type="password" value={formData.password || ''} onChange={handleChange} error={errors.password} placeholder="Enter password" />}

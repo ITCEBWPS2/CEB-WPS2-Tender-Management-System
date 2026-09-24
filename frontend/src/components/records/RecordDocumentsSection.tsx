@@ -21,6 +21,7 @@ interface RecordDocumentsSectionProps {
   recordId: string;
   documents: RecordDocument[];
   canDelete: boolean;
+  canUpload?: boolean;
   onDocumentsChange: (docs: RecordDocument[]) => void;
 }
 
@@ -28,6 +29,7 @@ export function RecordDocumentsSection({
   recordId,
   documents = [],
   canDelete,
+  canUpload = true,
   onDocumentsChange
 }: RecordDocumentsSectionProps) {
   const [stagedFiles, setStagedFiles] = useState<File[]>([]);
@@ -245,8 +247,9 @@ export function RecordDocumentsSection({
       </div>
 
       {/* Upload Dropzone */}
-      <div className="space-y-4">
-        <div
+      {canUpload && (
+        <div className="space-y-4">
+          <div
           onDragOver={(e) => {
             e.preventDefault();
             setIsDragOver(true);
@@ -348,6 +351,7 @@ export function RecordDocumentsSection({
           </div>
         )}
       </div>
+      )}
 
       {/* Documents List */}
       <div className="space-y-3 pt-2">

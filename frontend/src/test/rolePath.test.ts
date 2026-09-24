@@ -29,6 +29,12 @@ describe('getRolePrefix utility', () => {
     expect(getRolePrefix(' CLERK ')).toBe('/clerk');
   });
 
+  it('maps user to /user (case-insensitive and trimmed)', () => {
+    expect(getRolePrefix('user')).toBe('/user');
+    expect(getRolePrefix('User')).toBe('/user');
+    expect(getRolePrefix(' USER ')).toBe('/user');
+  });
+
   it('defaults to /admin for unknown roles, undefined, or empty strings', () => {
     expect(getRolePrefix(undefined)).toBe('/admin');
     expect(getRolePrefix('')).toBe('/admin');

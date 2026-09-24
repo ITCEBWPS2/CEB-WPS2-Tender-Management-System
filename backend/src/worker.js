@@ -6,6 +6,7 @@ import bcrypt from 'bcryptjs';
 import Joi from 'joi';
 
 import supabase from './config/supabase.js';
+import { PERMISSIONS } from './config/permissions.js';
 import AuditLog from './utils/auditLogger.js';
 import { runDeadlineReminderCheck } from './jobs/deadlineReminders.js';
 import { runDelayReminderCheck } from './jobs/delayReminders.js';
@@ -142,7 +143,8 @@ const authorize = (...allowedRoles) => {
     }
 
     const expandedRoles = [];
-    allowedRoles.forEach(role => {
+    const flattenedRoles = allowedRoles.flat();
+    flattenedRoles.forEach(role => {
       const cleanRole = role.toLowerCase().trim();
       expandedRoles.push(cleanRole);
       if (cleanRole === 'admin') expandedRoles.push('super admin');
@@ -466,7 +468,7 @@ const updateCategorySchema = Joi.object({
 
 const categories = new Hono();
 
-categories.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+categories.get('/', protect, authorize(...PERMISSIONS.view), async (c) => {
   const { data, error } = await supabase
     .from('categories')
     .select('*')
@@ -476,7 +478,7 @@ categories.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk')
   return c.json((data || []).map(formatCategory));
 });
 
-categories.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(createCategorySchema), async (c) => {
+categories.post('/', protect, authorize(...PERMISSIONS.add), validateBody(createCategorySchema), async (c) => {
   const body = c.get('parsedBody');
   const user = c.get('user');
 
@@ -496,7 +498,7 @@ categories.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), valida
   return c.json(item, 201);
 });
 
-categories.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+categories.get('/:id', protect, authorize(...PERMISSIONS.view), async (c) => {
   const id = c.req.param('id');
   const { data, error } = await supabase.from('categories').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
@@ -504,7 +506,7 @@ categories.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Cler
   return c.json(formatCategory(data));
 });
 
-categories.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(updateCategorySchema), async (c) => {
+categories.put('/:id', protect, authorize(...PERMISSIONS.edit), validateBody(updateCategorySchema), async (c) => {
   const id = c.req.param('id');
   const body = c.get('parsedBody');
   const user = c.get('user');
@@ -526,7 +528,7 @@ categories.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), vali
   return c.json(item);
 });
 
-categories.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
+categories.delete('/:id', protect, authorize(...PERMISSIONS.delete), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
 
@@ -579,13 +581,13 @@ const updateDepartmentSchema = Joi.object({
 
 const departments = new Hono();
 
-departments.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+departments.get('/', protect, authorize(...PERMISSIONS.view), async (c) => {
   const { data, error } = await supabase.from('departments').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return c.json((data || []).map(formatDepartment));
 });
 
-departments.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(createDepartmentSchema), async (c) => {
+departments.post('/', protect, authorize(...PERMISSIONS.add), validateBody(createDepartmentSchema), async (c) => {
   const body = c.get('parsedBody');
   const user = c.get('user');
 
@@ -608,7 +610,7 @@ departments.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), valid
   return c.json(item, 201);
 });
 
-departments.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+departments.get('/:id', protect, authorize(...PERMISSIONS.view), async (c) => {
   const id = c.req.param('id');
   const { data, error } = await supabase.from('departments').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
@@ -616,7 +618,7 @@ departments.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Cle
   return c.json(formatDepartment(data));
 });
 
-departments.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(updateDepartmentSchema), async (c) => {
+departments.put('/:id', protect, authorize(...PERMISSIONS.edit), validateBody(updateDepartmentSchema), async (c) => {
   const id = c.req.param('id');
   const body = c.get('parsedBody');
   const user = c.get('user');
@@ -641,7 +643,7 @@ departments.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), val
   return c.json(item);
 });
 
-departments.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
+departments.delete('/:id', protect, authorize(...PERMISSIONS.delete), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
 
@@ -722,13 +724,13 @@ const updateStaffSchema = Joi.object({
 
 const staff = new Hono();
 
-staff.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+staff.get('/', protect, authorize(...PERMISSIONS.view), async (c) => {
   const { data, error } = await supabase.from('staff').select('*, departments(*)').order('created_at', { ascending: false });
   if (error) throw error;
   return c.json((data || []).map(formatStaff));
 });
 
-staff.post('/', protect, authorize('Admin', 'CECOM'), validateBody(createStaffSchema), async (c) => {
+staff.post('/', protect, authorize(...PERMISSIONS.add), validateBody(createStaffSchema), async (c) => {
   const body = c.get('parsedBody');
   const user = c.get('user');
 
@@ -752,7 +754,7 @@ staff.post('/', protect, authorize('Admin', 'CECOM'), validateBody(createStaffSc
   return c.json(item, 201);
 });
 
-staff.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+staff.get('/:id', protect, authorize(...PERMISSIONS.view), async (c) => {
   const id = c.req.param('id');
   const { data, error } = await supabase.from('staff').select('*, departments(*)').eq('id', id).maybeSingle();
   if (error) throw error;
@@ -760,7 +762,7 @@ staff.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), 
   return c.json(formatStaff(data));
 });
 
-staff.put('/:id', protect, authorize('Admin', 'CECOM'), validateBody(updateStaffSchema), async (c) => {
+staff.put('/:id', protect, authorize(...PERMISSIONS.edit), validateBody(updateStaffSchema), async (c) => {
   const id = c.req.param('id');
   const body = c.get('parsedBody');
   const user = c.get('user');
@@ -790,7 +792,7 @@ staff.put('/:id', protect, authorize('Admin', 'CECOM'), validateBody(updateStaff
   return c.json(item);
 });
 
-staff.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
+staff.delete('/:id', protect, authorize(...PERMISSIONS.delete), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
 
@@ -844,13 +846,13 @@ const updateBidderSchema = Joi.object({
 
 const bidders = new Hono();
 
-bidders.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+bidders.get('/', protect, authorize(...PERMISSIONS.view), async (c) => {
   const { data, error } = await supabase.from('bidders').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return c.json((data || []).map(formatBidder));
 });
 
-bidders.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(createBidderSchema), async (c) => {
+bidders.post('/', protect, authorize(...PERMISSIONS.add), validateBody(createBidderSchema), async (c) => {
   const body = c.get('parsedBody');
   const user = c.get('user');
 
@@ -866,7 +868,7 @@ bidders.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateB
   return c.json(item, 201);
 });
 
-bidders.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+bidders.get('/:id', protect, authorize(...PERMISSIONS.view), async (c) => {
   const id = c.req.param('id');
   const { data, error } = await supabase.from('bidders').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
@@ -874,7 +876,7 @@ bidders.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk')
   return c.json(formatBidder(data));
 });
 
-bidders.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(updateBidderSchema), async (c) => {
+bidders.put('/:id', protect, authorize(...PERMISSIONS.edit), validateBody(updateBidderSchema), async (c) => {
   const id = c.req.param('id');
   const body = c.get('parsedBody');
   const user = c.get('user');
@@ -897,7 +899,7 @@ bidders.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validat
   return c.json(item);
 });
 
-bidders.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
+bidders.delete('/:id', protect, authorize(...PERMISSIONS.delete), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
 
@@ -940,7 +942,7 @@ const createCommitteeSchema = Joi.object({
   member2: Joi.string().trim().required(),
   member3: Joi.string().trim().required(),
   additionalMembers: Joi.array().items(Joi.string().allow('', null)).optional(),
-  appointedDate: dateOrString.required(),
+  appointedDate: Joi.date().allow(null, '').optional(),
   status: Joi.string().allow('', null)
 });
 
@@ -950,19 +952,19 @@ const updateCommitteeSchema = Joi.object({
   member2: Joi.string().trim().allow('', null),
   member3: Joi.string().trim().allow('', null),
   additionalMembers: Joi.array().items(Joi.string().allow('', null)).optional(),
-  appointedDate: dateOrString,
+  appointedDate: Joi.date().allow(null, '').optional(),
   status: Joi.string().allow('', null)
 });
 
 const committees = new Hono();
 
-committees.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+committees.get('/', protect, authorize(...PERMISSIONS.view), async (c) => {
   const { data, error } = await supabase.from('committees').select('*').order('created_at', { ascending: false });
   if (error) throw error;
   return c.json((data || []).map(formatCommittee));
 });
 
-committees.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(createCommitteeSchema), async (c) => {
+committees.post('/', protect, authorize(...PERMISSIONS.add), validateBody(createCommitteeSchema), async (c) => {
   const body = c.get('parsedBody');
   const user = c.get('user');
 
@@ -993,7 +995,7 @@ committees.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), valida
   return c.json(item, 201);
 });
 
-committees.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+committees.get('/:id', protect, authorize(...PERMISSIONS.view), async (c) => {
   const id = c.req.param('id');
   const { data, error } = await supabase.from('committees').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
@@ -1001,7 +1003,7 @@ committees.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Cler
   return c.json(formatCommittee(data));
 });
 
-committees.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(updateCommitteeSchema), async (c) => {
+committees.put('/:id', protect, authorize(...PERMISSIONS.edit), validateBody(updateCommitteeSchema), async (c) => {
   const id = c.req.param('id');
   const body = c.get('parsedBody');
   const user = c.get('user');
@@ -1020,8 +1022,10 @@ committees.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), vali
     updates.additional_members = Array.isArray(body.additional_members) ? body.additional_members : [];
   }
 
-  if (body.appointedDate !== undefined) updates.appointed_date = String(body.appointedDate).slice(0, 10);
-  else if (body.appointed_date !== undefined) updates.appointed_date = String(body.appointed_date).slice(0, 10);
+  const rawAppointedDate = body.appointedDate !== undefined ? body.appointedDate : body.appointed_date;
+  if (rawAppointedDate !== undefined) {
+    updates.appointed_date = rawAppointedDate ? String(rawAppointedDate).slice(0, 10) : null;
+  }
 
   if (body.status !== undefined) updates.status = body.status;
 
@@ -1037,7 +1041,7 @@ committees.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), vali
   return c.json(item);
 });
 
-committees.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
+committees.delete('/:id', protect, authorize(...PERMISSIONS.delete), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
 
@@ -1223,7 +1227,7 @@ const updateRecordSchema = Joi.object({
 
 const records = new Hono();
 
-records.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+records.get('/', protect, authorize(...PERMISSIONS.view), async (c) => {
   const { data: recordRows, error } = await supabase
     .from('records')
     .select('*')
@@ -1241,7 +1245,7 @@ records.get('/', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), a
   return c.json((recordRows || []).map(r => formatRecord(r, docsByRecordId[r.id] || [])));
 });
 
-records.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(createRecordSchema), async (c) => {
+records.post('/', protect, authorize(...PERMISSIONS.add), validateBody(createRecordSchema), async (c) => {
   const body = c.get('parsedBody');
   const user = c.get('user');
 
@@ -1258,7 +1262,7 @@ records.post('/', protect, authorize('Admin', 'Procurement', 'CECOM'), validateB
   return c.json(item, 201);
 });
 
-records.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+records.get('/:id', protect, authorize(...PERMISSIONS.view), async (c) => {
   const id = c.req.param('id');
   const { data: record, error } = await supabase.from('records').select('*').eq('id', id).maybeSingle();
   if (error) throw error;
@@ -1268,7 +1272,7 @@ records.get('/:id', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk')
   return c.json(formatRecord(record, docs));
 });
 
-records.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validateBody(updateRecordSchema), async (c) => {
+records.put('/:id', protect, authorize(...PERMISSIONS.edit), validateBody(updateRecordSchema), async (c) => {
   const id = c.req.param('id');
   const body = c.get('parsedBody');
   const user = c.get('user');
@@ -1294,7 +1298,7 @@ records.put('/:id', protect, authorize('Admin', 'Procurement', 'CECOM'), validat
   return c.json(item);
 });
 
-records.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
+records.delete('/:id', protect, authorize(...PERMISSIONS.delete), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
 
@@ -1318,7 +1322,7 @@ records.delete('/:id', protect, authorize('Admin', 'CECOM'), async (c) => {
   return c.json({ message: 'Deleted' });
 });
 
-records.post('/:id/documents', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+records.post('/:id/documents', protect, authorize(...PERMISSIONS.add), async (c) => {
   const id = c.req.param('id');
   const user = c.get('user');
 
@@ -1411,7 +1415,7 @@ records.post('/:id/documents', protect, authorize('Admin', 'Procurement', 'CECOM
   }, 201);
 });
 
-records.get('/:id/documents', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+records.get('/:id/documents', protect, authorize(...PERMISSIONS.view), async (c) => {
   const id = c.req.param('id');
   const { data: record } = await supabase.from('records').select('*').eq('id', id).maybeSingle();
   if (!record) {
@@ -1422,7 +1426,7 @@ records.get('/:id/documents', protect, authorize('Admin', 'Procurement', 'CECOM'
   return c.json(docs.map(formatRecordDocument));
 });
 
-records.get('/:id/documents/:docId/download', protect, authorize('Admin', 'Procurement', 'CECOM', 'Clerk'), async (c) => {
+records.get('/:id/documents/:docId/download', protect, authorize(...PERMISSIONS.view), async (c) => {
   const id = c.req.param('id');
   const docId = c.req.param('docId');
 
@@ -1460,7 +1464,7 @@ records.get('/:id/documents/:docId/download', protect, authorize('Admin', 'Procu
   });
 });
 
-records.delete('/:id/documents/:docId', protect, authorize('Admin', 'Procurement'), async (c) => {
+records.delete('/:id/documents/:docId', protect, authorize(...PERMISSIONS.delete), async (c) => {
   const id = c.req.param('id');
   const docId = c.req.param('docId');
   const user = c.get('user');

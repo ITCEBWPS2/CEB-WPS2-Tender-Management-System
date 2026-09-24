@@ -151,6 +151,9 @@ export function UserManagementPage() {
               value: 'All',
               label: 'All Roles'
             }, {
+              value: 'Super Admin',
+              label: 'Super Admin'
+            }, {
               value: 'Admin',
               label: 'Admin'
             }, {
@@ -162,6 +165,9 @@ export function UserManagementPage() {
             }, {
               value: 'Clerk',
               label: 'Clerk'
+            }, {
+              value: 'User',
+              label: 'User'
             }]} value={roleFilter} onChange={e => setRoleFilter(e.target.value)} />
             
             <Select className="w-32" options={[{

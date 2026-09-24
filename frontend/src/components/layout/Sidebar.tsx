@@ -2,10 +2,28 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, FileText, Plus, Users, UserPlus, Building2, Download, LogOut, Menu, FolderOpen, Briefcase, Gavel, Shield, FileSearch, Bell } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { useRolePath } from '../../utils/rolePath';
+import { can, PermissionAction } from '../../utils/permissions';
 
 interface SidebarProps {
   isOpen: boolean;  
   setIsOpen: (isOpen: boolean) => void;
+}
+
+interface NavSubItem {
+  title: string;
+  path: string;
+  icon: React.ReactNode;
+  action?: PermissionAction;
+  allowedRoles?: string[];
+}
+
+interface NavItem {
+  title: string;
+  path: string;
+  icon: React.ReactNode;
+  action?: PermissionAction;
+  allowedRoles?: string[];
+  subItems?: NavSubItem[];
 }
 
 export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
@@ -22,13 +40,23 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     return allowedClean.includes(userRole) || allowedClean.includes(effectiveRole);
   };
 
+  const isVisible = (item: { action?: PermissionAction; allowedRoles?: string[] }) => {
+    if (item.action) {
+      return can(item.action, user?.role);
+    }
+    if (item.allowedRoles) {
+      return hasRoleAccess(item.allowedRoles);
+    }
+    return true;
+  };
+
   const handleLogout = () => {
     logout();
     navigate('/login');
   };
 
   // NAVIGATION CONFIGURATION - DYNAMIC ROLE PREFIXED PATHS
-  const navItems = [{
+  const navItems: NavItem[] = [{
     title: 'Dashboard',
     path: `${prefix}/dashboard`,
     icon: <LayoutDashboard className="w-5 h-5" />
@@ -36,91 +64,97 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
     title: 'Records',
     path: `${prefix}/records`,
     icon: <FileText className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk'],
+    action: 'view',
     subItems: [{
       title: 'All Records',
       path: `${prefix}/records`,
-      icon: <FileText className="w-4 h-4" />
+      icon: <FileText className="w-4 h-4" />,
+      action: 'view'
     }, {
       title: 'Add Record',
       path: `${prefix}/records/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
+      action: 'add'
     }]
   }, {
     title: 'Categories',
     path: `${prefix}/categories`,
     icon: <FolderOpen className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'],
+    action: 'view',
     subItems: [{
       title: 'Category List',
       path: `${prefix}/categories`,
-      icon: <FolderOpen className="w-4 h-4" />
+      icon: <FolderOpen className="w-4 h-4" />,
+      action: 'view'
     }, {
       title: 'Add Category',
       path: `${prefix}/categories/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
+      action: 'add'
     }]
   }, {
     title: 'Units',
     path: `${prefix}/departments`,
     icon: <Briefcase className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'], 
+    action: 'view',
     subItems: [{
       title: 'Unit List',
       path: `${prefix}/departments`,
-      icon: <Briefcase className="w-4 h-4" />
+      icon: <Briefcase className="w-4 h-4" />,
+      action: 'view'
     }, {
       title: 'Add Unit',
       path: `${prefix}/departments/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
+      action: 'add'
     }]
   }, {
     title: 'Staff',
     path: `${prefix}/tec-staff`,
     icon: <Users className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'], 
+    action: 'view',
     subItems: [{
       title: 'Staff List',
       path: `${prefix}/tec-staff`,
-      icon: <Users className="w-4 h-4" />
+      icon: <Users className="w-4 h-4" />,
+      action: 'view'
     }, {
       title: 'Add Staff',
       path: `${prefix}/tec-staff/add`,
       icon: <UserPlus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'CECOM']
+      action: 'add'
     }]
   }, {
     title: 'Bidders',
     path: `${prefix}/bidders`,
     icon: <Building2 className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'Clerk', 'CECOM'], 
+    action: 'view',
     subItems: [{
       title: 'Supplier List',
       path: `${prefix}/bidders`,
-      icon: <Building2 className="w-4 h-4" />
+      icon: <Building2 className="w-4 h-4" />,
+      action: 'view'
     }, {
       title: 'Add Supplier',
       path: `${prefix}/bidders/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
+      action: 'add'
     }]
   }, {
     title: 'TEC Committee',
     path: `${prefix}/bid-opening`,
     icon: <Gavel className="w-5 h-5" />,
-    allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM', 'Clerk'], 
+    action: 'view',
     subItems: [{
       title: 'View All Committees',
       path: `${prefix}/bid-opening`,
-      icon: <Gavel className="w-4 h-4" />
+      icon: <Gavel className="w-4 h-4" />,
+      action: 'view'
     }, {
       title: 'Add Committee',
       path: `${prefix}/bid-opening/add`,
       icon: <Plus className="w-4 h-4" />,
-      allowedRoles: ['Admin', 'Super Admin', 'Procurement', 'CECOM']
+      action: 'add'
     }]
   }, {
     title: 'User Management',
@@ -153,10 +187,10 @@ export function Sidebar({ isOpen, setIsOpen }: SidebarProps) {
   }];
 
   const filteredNavItems = navItems
-    .filter(item => hasRoleAccess(item.allowedRoles))
+    .filter(item => isVisible(item))
     .map(item => ({
       ...item,
-      subItems: item.subItems?.filter(sub => hasRoleAccess(sub.allowedRoles))
+      subItems: item.subItems?.filter(sub => isVisible(sub))
     }));
 
   return <>

@@ -24,6 +24,9 @@ export function getRolePrefix(role?: string): string {
   if (normalized === 'clerk') {
     return '/clerk';
   }
+  if (normalized === 'user') {
+    return '/user';
+  }
   return '/admin';
 }
 

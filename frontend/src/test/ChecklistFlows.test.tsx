@@ -149,7 +149,7 @@ describe('21-Point QA Checklist Flow Verifications', () => {
   // Checklist Item 1: Records Add Navigation
   // ---------------------------------------------------------------------------
   it('1. Records: "Add New Record" button opens the Add Record page (/<role>/records/add)', async () => {
-    for (const role of ['Admin', 'Procurement', 'CECOM']) {
+    for (const role of ['Admin', 'Procurement', 'Clerk']) {
       const prefix = role.toLowerCase();
       renderAppAt(`/${prefix}/records`, role);
 
@@ -205,7 +205,7 @@ describe('21-Point QA Checklist Flow Verifications', () => {
   // Checklist Item 3: Categories Add Navigation
   // ---------------------------------------------------------------------------
   it('3. Categories: "Add Category" (page button and sidebar item) opens Add Category page', async () => {
-    for (const role of ['Admin', 'Procurement', 'CECOM']) {
+    for (const role of ['Admin', 'Procurement', 'Clerk']) {
       const prefix = role.toLowerCase();
       renderAppAt(`/${prefix}/categories`, role);
 
@@ -254,7 +254,7 @@ describe('21-Point QA Checklist Flow Verifications', () => {
   // Checklist Item 5: Units Add Navigation
   // ---------------------------------------------------------------------------
   it('5. Units: "Add New Unit" opens the Add Unit page', async () => {
-    for (const role of ['Admin', 'Procurement', 'CECOM']) {
+    for (const role of ['Admin', 'Procurement', 'Clerk']) {
       const prefix = role.toLowerCase();
       renderAppAt(`/${prefix}/departments`, role);
 
@@ -334,7 +334,7 @@ describe('21-Point QA Checklist Flow Verifications', () => {
   // Checklist Item 9: Staff Add Navigation
   // ---------------------------------------------------------------------------
   it('9. Staff: "Add Staff Member" opens the Add Staff page', async () => {
-    for (const role of ['Admin', 'CECOM']) {
+    for (const role of ['Admin', 'Procurement', 'Clerk']) {
       const prefix = role.toLowerCase();
       renderAppAt(`/${prefix}/tec-staff`, role);
 
@@ -504,7 +504,7 @@ describe('21-Point QA Checklist Flow Verifications', () => {
   // Checklist Item 17: Suppliers Add Navigation and Save
   // ---------------------------------------------------------------------------
   it('17. Suppliers (Bidders): "Add Supplier" opens Add Supplier page; saving returns to Supplier list', async () => {
-    for (const role of ['Admin', 'Procurement', 'CECOM']) {
+    for (const role of ['Admin', 'Procurement', 'Clerk']) {
       const prefix = role.toLowerCase();
       renderAppAt(`/${prefix}/bidders`, role);
 
@@ -554,7 +554,7 @@ describe('21-Point QA Checklist Flow Verifications', () => {
   // Checklist Item 19: TEC Committee Add Navigation
   // ---------------------------------------------------------------------------
   it('19. TEC Committee: "Add New Committee" opens Add Committee page', async () => {
-    for (const role of ['Admin', 'Procurement', 'CECOM']) {
+    for (const role of ['Admin', 'Procurement', 'Clerk']) {
       const prefix = role.toLowerCase();
       renderAppAt(`/${prefix}/bid-opening`, role);
 
@@ -626,49 +626,55 @@ describe('21-Point QA Checklist Flow Verifications', () => {
   // Role Matrix Boundary Enforcement
   // ---------------------------------------------------------------------------
   describe('Role matrix expectations', () => {
-    it('enforces Clerk is read-only across all list pages without Add or Edit buttons', async () => {
+    it('enforces User is read-only across all list pages without Add or Edit buttons', async () => {
       // Records
-      renderAppAt('/clerk/records', 'Clerk');
+      renderAppAt('/user/records', 'User');
       await screen.findByText('CEB/REC/2026/01');
       expect(screen.queryByRole('button', { name: /add new record/i })).not.toBeInTheDocument();
       expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
 
       // Categories
-      renderAppAt('/clerk/categories', 'Clerk');
+      renderAppAt('/user/categories', 'User');
       await screen.findByText('Transformers');
       expect(screen.queryByRole('button', { name: /add new category/i })).not.toBeInTheDocument();
       expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
 
       // Units
-      renderAppAt('/clerk/departments', 'Clerk');
+      renderAppAt('/user/departments', 'User');
       await screen.findByText('Transmission Unit');
       expect(screen.queryByRole('button', { name: /add new unit/i })).not.toBeInTheDocument();
       expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
 
       // Staff
-      renderAppAt('/clerk/tec-staff', 'Clerk');
+      renderAppAt('/user/tec-staff', 'User');
       await screen.findByText('Eng. Nimal Perera');
       expect(screen.queryByRole('button', { name: /add staff member/i })).not.toBeInTheDocument();
       expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
 
       // Bidders
-      renderAppAt('/clerk/bidders', 'Clerk');
+      renderAppAt('/user/bidders', 'User');
       await screen.findByText('Alpha Supplies Ltd');
       expect(screen.queryByRole('button', { name: /add supplier/i })).not.toBeInTheDocument();
       expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
 
       // Committees
-      renderAppAt('/clerk/bid-opening', 'Clerk');
+      renderAppAt('/user/bid-opening', 'User');
       await screen.findByText('TEC/COM/2026/01');
       expect(screen.queryByRole('button', { name: /add new committee/i })).not.toBeInTheDocument();
       expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
     });
 
-    it('denies Procurement Add/Edit on Staff', async () => {
+    it('allows Clerk and Procurement Add and Edit on Staff but denies Delete', async () => {
+      renderAppAt('/clerk/tec-staff', 'Clerk');
+      await screen.findByText('Eng. Nimal Perera');
+      expect(screen.getByRole('button', { name: /add staff member/i })).toBeInTheDocument();
+      expect(screen.getAllByTitle('Edit').length).toBeGreaterThan(0);
+      expect(screen.queryByTitle('Delete')).not.toBeInTheDocument();
+
       renderAppAt('/procurement/tec-staff', 'Procurement');
       await screen.findByText('Eng. Nimal Perera');
-      expect(screen.queryByRole('button', { name: /add staff member/i })).not.toBeInTheDocument();
-      expect(screen.queryByTitle('Edit')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /add staff member/i })).toBeInTheDocument();
+      expect(screen.getAllByTitle('Edit').length).toBeGreaterThan(0);
       expect(screen.queryByTitle('Delete')).not.toBeInTheDocument();
     });
 

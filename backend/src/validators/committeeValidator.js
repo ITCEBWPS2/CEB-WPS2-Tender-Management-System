@@ -9,15 +9,13 @@ const validate = (schema) => (req, res, next) => {
   next();
 };
 
-const dateOrString = Joi.alternatives().try(Joi.date(), Joi.string().allow('', null));
-
 const createCommitteeSchema = Joi.object({
   committeeNumber: Joi.string().trim().required(),
   member1: Joi.string().trim().required(),
   member2: Joi.string().trim().required(),
   member3: Joi.string().trim().required(),
   additionalMembers: Joi.array().items(Joi.string().allow('', null)).optional(),
-  appointedDate: dateOrString.required(),
+  appointedDate: Joi.date().allow(null, '').optional(),
   status: Joi.string().allow('', null)
 });
 
@@ -27,7 +25,7 @@ const updateCommitteeSchema = Joi.object({
   member2: Joi.string().trim().allow('', null),
   member3: Joi.string().trim().allow('', null),
   additionalMembers: Joi.array().items(Joi.string().allow('', null)).optional(),
-  appointedDate: dateOrString,
+  appointedDate: Joi.date().allow(null, '').optional(),
   status: Joi.string().allow('', null)
 });
 

@@ -37,6 +37,9 @@ export const getRoleHomeRoute = (role?: string): string => {
   if (normalizedRole === 'clerk') {
     return '/clerk/dashboard';
   }
+  if (normalizedRole === 'user') {
+    return '/user/dashboard';
+  }
   return '/admin/dashboard';
 };
 

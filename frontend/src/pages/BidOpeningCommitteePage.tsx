@@ -9,6 +9,7 @@ import { BidOpeningCommittee } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useRolePath } from '../utils/rolePath';
 import { useAuth } from '../context/AuthContext';
+import { can } from '../utils/permissions';
 
 export function BidOpeningCommitteePage() {
   const navigate = useNavigate();
@@ -20,11 +21,9 @@ export function BidOpeningCommitteePage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const role = (user?.role || '').toLowerCase().trim();
-  const effectiveRole = role === 'super admin' ? 'admin' : role;
-  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
-  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
-  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
+  const canAdd = can('add', user?.role);
+  const canEdit = can('edit', user?.role);
+  const canDelete = can('delete', user?.role);
 
   const handleDelete = () => {
     (async () => {
@@ -95,7 +94,13 @@ export function BidOpeningCommitteePage() {
         </span>
   }, {
     header: 'Appointed Date',
-    accessorKey: 'appointedDate' as keyof BidOpeningCommittee
+    accessorKey: 'appointedDate' as keyof BidOpeningCommittee,
+    cell: (item: BidOpeningCommittee) => {
+      if (!item.appointedDate) return <span className="text-slate-500">-</span>;
+      const d = new Date(item.appointedDate);
+      if (isNaN(d.getTime())) return <span className="text-slate-500">-</span>;
+      return <span className="text-slate-700">{item.appointedDate}</span>;
+    }
   }, {
     header: 'Status',
     accessorKey: 'status' as keyof BidOpeningCommittee,

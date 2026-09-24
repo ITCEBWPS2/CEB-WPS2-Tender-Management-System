@@ -7,6 +7,7 @@ import { apiFetch } from '../utils/api';
 import { RecordDocumentsSection } from '../components/records/RecordDocumentsSection';
 import { useAuth } from '../context/AuthContext';
 import { useRolePath } from '../utils/rolePath';
+import { can } from '../utils/permissions';
 
 export function ViewRecordPage() {
   const navigate = useNavigate();
@@ -17,10 +18,9 @@ export function ViewRecordPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const userRole = (user?.role || '').toLowerCase().trim();
-  const effectiveRole = userRole === 'super admin' ? 'admin' : userRole;
-  const canDeleteDocuments = ['admin', 'procurement'].includes(effectiveRole);
-  const canEdit = ['admin', 'procurement', 'cecom'].includes(effectiveRole);
+  const canDeleteDocuments = can('delete', user?.role);
+  const canUploadDocuments = can('add', user?.role);
+  const canEdit = can('edit', user?.role);
 
   useEffect(() => {
     const loadRecord = async () => {
@@ -164,6 +164,7 @@ export function ViewRecordPage() {
               recordId={record.id}
               documents={record.documents || []}
               canDelete={canDeleteDocuments}
+              canUpload={canUploadDocuments}
               onDocumentsChange={(updatedDocs) => {
                 setRecord(prev => prev ? { ...prev, documents: updatedDocs } : null);
               }}

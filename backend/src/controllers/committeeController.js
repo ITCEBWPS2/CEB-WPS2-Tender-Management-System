@@ -119,8 +119,10 @@ exports.update = async (req, res, next) => {
       updates.additional_members = Array.isArray(req.body.additional_members) ? req.body.additional_members : [];
     }
 
-    if (req.body.appointedDate !== undefined) updates.appointed_date = String(req.body.appointedDate).slice(0, 10);
-    else if (req.body.appointed_date !== undefined) updates.appointed_date = String(req.body.appointed_date).slice(0, 10);
+    const rawAppointedDate = req.body.appointedDate !== undefined ? req.body.appointedDate : req.body.appointed_date;
+    if (rawAppointedDate !== undefined) {
+      updates.appointed_date = rawAppointedDate ? String(rawAppointedDate).slice(0, 10) : null;
+    }
 
     if (req.body.status !== undefined) updates.status = req.body.status;
 
