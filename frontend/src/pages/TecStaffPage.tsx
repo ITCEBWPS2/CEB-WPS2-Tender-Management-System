@@ -8,6 +8,7 @@ import { Staff } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useRolePath } from '../utils/rolePath';
 import { useAuth } from '../context/AuthContext';
+import { can } from '../utils/permissions';
 
 export function TecStaffPage() {
   const navigate = useNavigate();
@@ -18,11 +19,9 @@ export function TecStaffPage() {
   const [error, setError] = useState<string | null>(null);
   const [deleteId, setDeleteId] = useState<string | null>(null);
 
-  const role = (user?.role || '').toLowerCase().trim();
-  const effectiveRole = role === 'super admin' ? 'admin' : role;
-  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom';
-  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom';
-  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
+  const canAdd = can('add', user?.role);
+  const canEdit = can('edit', user?.role);
+  const canDelete = can('delete', user?.role);
 
   const handleDelete = () => {
     (async () => {

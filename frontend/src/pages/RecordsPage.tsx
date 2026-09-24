@@ -8,6 +8,7 @@ import { Record as TmsRecord } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useRolePath } from '../utils/rolePath';
+import { can } from '../utils/permissions';
 
 export function RecordsPage() {
   const navigate = useNavigate();
@@ -22,11 +23,9 @@ export function RecordsPage() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [searchTerm, setSearchTerm] = useState('');
 
-  const role = (user?.role || '').toLowerCase().trim();
-  const effectiveRole = role === 'super admin' ? 'admin' : role;
-  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
-  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
-  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
+  const canAdd = can('add', user?.role);
+  const canEdit = can('edit', user?.role);
+  const canDelete = can('delete', user?.role);
 
   const handleDelete = () => {
     (async () => {

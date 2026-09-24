@@ -9,6 +9,7 @@ import { Department } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { useRolePath } from '../utils/rolePath';
+import { can } from '../utils/permissions';
 
 export function AddEditDepartmentPage() {
   const navigate = useNavigate();
@@ -23,20 +24,15 @@ export function AddEditDepartmentPage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isLoading, setIsLoading] = useState(isEdit);
 
-  const userRole = (user?.role || '').toLowerCase().trim();
-  const isAuthorized = ['admin', 'super admin', 'cecom', 'procurement'].includes(userRole);
+  const isAuthorized = isEdit ? can('edit', user?.role) : can('add', user?.role);
 
-  // Enforce access guard for this page (Admin, Super Admin, CECOM, Procurement allowed; Clerk denied)
+  // Enforce access guard for this page
   useEffect(() => {
     if (!isAuthorized) {
-      if (userRole === 'clerk') {
-        alert('Access Denied: Clerks are not authorized to add or edit units! 🛑');
-      } else {
-        alert('Access Denied: You are not authorized to access this page. 🛑');
-      }
+      alert('Access Denied: You are not authorized to add or edit units. 🛑');
       navigate(path('/departments'));
     }
-  }, [isAuthorized, userRole, navigate, path]);
+  }, [isAuthorized, navigate, path]);
 
   // Load existing unit data if in edit mode
   useEffect(() => {

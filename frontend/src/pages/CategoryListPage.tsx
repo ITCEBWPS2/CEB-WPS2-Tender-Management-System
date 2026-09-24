@@ -9,6 +9,7 @@ import { CategoryItem } from '../utils/types';
 import { apiFetch } from '../utils/api';
 import { useRolePath } from '../utils/rolePath';
 import { useAuth } from '../context/AuthContext';
+import { can } from '../utils/permissions';
 
 export function CategoryListPage() {
   const navigate = useNavigate();
@@ -20,11 +21,9 @@ export function CategoryListPage() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState('All');
 
-  const role = (user?.role || '').toLowerCase().trim();
-  const effectiveRole = role === 'super admin' ? 'admin' : role;
-  const canAdd = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
-  const canEdit = effectiveRole === 'admin' || effectiveRole === 'cecom' || effectiveRole === 'procurement';
-  const canDelete = effectiveRole === 'admin' || effectiveRole === 'cecom';
+  const canAdd = can('add', user?.role);
+  const canEdit = can('edit', user?.role);
+  const canDelete = can('delete', user?.role);
 
   const handleDelete = () => {
     (async () => {
